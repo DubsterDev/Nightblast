@@ -129,7 +129,7 @@ class MainActivity : ComponentActivity() {
                         KeyProperties.DIGEST_SHA1
                     )
                     .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
-                    .setKeySize(2048)
+                    .setKeySize(4096)
                     .build()
             )
 
@@ -152,7 +152,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
             messageTextFieldState,
             placeholder = {
                 Text(
-                    "Message (max length 190 chars)"
+                    "Message (max length 440 chars)"
                 )
             }
         )
@@ -191,7 +191,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
             val message = messageTextFieldState.text.trim().toString()
             val phoneNumber = phoneNumberTextFieldState.text.trim().toString()
 
-            if (message.length <= 180) {
+            if (message.length <= 440) {
                 sendMessage(phoneNumber, message, selectedPriority)
             }
 
