@@ -11,20 +11,31 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,8 +63,8 @@ class MainActivity : ComponentActivity() {
             NightblastTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     SendMessage(
-                        { phoneNumber, message ->
-                            sendMessage(phoneNumber, message)
+                        { phoneNumber, message, priority ->
+                            sendMessage(phoneNumber, message, priority)
                         },
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -62,7 +73,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun sendMessage(phoneNumber: String, message: String) {
+    fun sendMessage(phoneNumber: String, message: String, priority: Int) {
         CoroutineScope(Dispatchers.IO).launch {
             val sms = applicationContext.getSystemService(SmsManager::class.java)
 
@@ -85,7 +96,7 @@ class MainActivity : ComponentActivity() {
             val encryptedBytes = cipher.doFinal(message.encodeToByteArray())
             val encryptedBase64 = Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
 
-            val parts = sms.divideMessage("NIGHTBLAST:MSG:$encryptedBase64")
+            val parts = sms.divideMessage("NIGHTBLAST:MSG:$encryptedBase64@$priority")
             sms.sendMultipartTextMessage(phoneNumber, null, parts, null, null)
         }
     }
@@ -128,7 +139,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun SendMessage(sendMessage: (phoneNumber: String, message: String) -> Unit, modifier: Modifier = Modifier) {
+fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: Int) -> Unit, modifier: Modifier = Modifier) {
     val phoneNumberTextFieldState = rememberTextFieldState()
     val messageTextFieldState = rememberTextFieldState()
     Column(
@@ -145,16 +156,55 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String) -> Unit, mod
                 )
             }
         )
+
+        val priorities = listOf("Just a notification", "Vibrating dialog", "Dialog with vibrations and noise")
+        var selectedPriority by remember { mutableIntStateOf(0) }
+        Column(Modifier.selectableGroup()) {
+            priorities.forEachIndexed { index, priority ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .selectable(
+                            selected = (index == selectedPriority),
+                            onClick = {
+                                selectedPriority = index
+                            },
+                            role = Role.RadioButton
+                        )
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = (index == selectedPriority),
+                        onClick = null
+                    )
+                    Text(
+                        text = priority,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
+            }
+        }
         Button({
             val message = messageTextFieldState.text.trim().toString()
             val phoneNumber = phoneNumberTextFieldState.text.trim().toString()
 
             if (message.length <= 180) {
-                sendMessage(phoneNumber, message)
+                sendMessage(phoneNumber, message, selectedPriority)
             }
 
         }) {
             Text("Send it")
         }
+    }
+}
+
+@Preview
+@Composable
+fun SendMessagePreview() {
+    NightblastTheme {
+        SendMessage({ _, _, _ -> })
     }
 }

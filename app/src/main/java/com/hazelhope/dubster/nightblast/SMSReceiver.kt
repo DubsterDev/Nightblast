@@ -56,7 +56,9 @@ class SMSReceiver : BroadcastReceiver() {
                         setPublicKey(context, sender, pubKey)
                     }
                 } else if (command.startsWith("MSG:") && sender != null) {
-                    val encryptedMessage = command.replace("MSG:", "")
+                    val encryptedPayload = command.replace("MSG:", "").split("@")
+                    val encryptedMessage = encryptedPayload[0]
+                    val priority = encryptedPayload[1].toInt()
 
                     val cipher = Cipher.getInstance("RSA/ECB/OAEPPadding")
                     val oaepSpec = OAEPParameterSpec(
@@ -69,11 +71,10 @@ class SMSReceiver : BroadcastReceiver() {
                     val encryptedBytes = Base64.decode(encryptedMessage, Base64.DEFAULT)
 
                     val decryptedBytes = cipher.doFinal(encryptedBytes)
-                    Log.d("TAG", "Received message: ${decryptedBytes.decodeToString()}")
 
                     val activityIntent = Intent(context, Alert::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        putExtra("MESSAGE", decryptedBytes.decodeToString())
+                        putExtra("MESSAGE", "priority: $priority\n${decryptedBytes.decodeToString()}")
                         putExtra("SENDER", sender)
                     }
                     context.startActivity(activityIntent)
