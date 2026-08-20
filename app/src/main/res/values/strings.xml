@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Nightblast</string>
+    <string name="title_activity_alert">Alert</string>
 </resources>

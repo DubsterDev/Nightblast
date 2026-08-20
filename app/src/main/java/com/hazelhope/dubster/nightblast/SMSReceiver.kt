@@ -71,8 +71,10 @@ class SMSReceiver : BroadcastReceiver() {
                     val decryptedBytes = cipher.doFinal(encryptedBytes)
                     Log.d("TAG", "Received message: ${decryptedBytes.decodeToString()}")
 
-                    val activityIntent = Intent(context, MainActivity::class.java).apply {
+                    val activityIntent = Intent(context, Alert::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        putExtra("MESSAGE", decryptedBytes.decodeToString())
+                        putExtra("SENDER", sender)
                     }
                     context.startActivity(activityIntent)
                 }
