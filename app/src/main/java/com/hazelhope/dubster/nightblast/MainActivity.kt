@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -159,6 +161,11 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
     var selectedContacts by remember { mutableStateOf(listOf<String>()) }
     var contactPickerOpen by remember { mutableStateOf(false) }
 
+    var connectDialogOpen by remember { mutableStateOf(false) }
+
+    var contactsRefreshKey by remember { mutableIntStateOf(0) }
+
+
     LaunchedEffect(Unit) {
         contacts = fetchContacts(context)
     }
@@ -173,7 +180,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                     modifier = Modifier.verticalScroll(rememberScrollState())
                 ) {
-                    contacts.forEach { contact ->
+                    contacts.filter { it.hasPublicKey }.forEach { contact ->
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -198,9 +205,37 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                                 onCheckedChange = null
                             )
                             Text(
-                                text = contact.name + " (${contact.number})"
+                                text = contact.name
                             )
                         }
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                            .clickable {
+                                contactsRefreshKey++
+                            }
+                    ) {
+                        Text(
+                            text = "Refresh"
+                        )
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                            .clickable {
+                                connectDialogOpen = true
+                            }
+                    ) {
+                        Text(
+                            text = "Connect to more contacts"
+                        )
                     }
                 }
             },
@@ -218,6 +253,10 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
             }
         )
 
+    }
+
+    if (connectDialogOpen) {
+        InviteContactsDialog(contacts, {connectDialogOpen = false})
     }
 
     Column(
@@ -283,6 +322,60 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
             Text("Send it")
         }
     }
+}
+
+@Composable
+fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    var attemptingToConnect by remember { mutableStateOf(listOf<String>()) }
+
+    val context = LocalContext.current
+    val sms = remember { context.getSystemService(SmsManager::class.java) }
+    AlertDialog(
+        title = {
+            Text(text = "Tap to connect")
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                contacts.filter { !it.hasPublicKey }.forEach { contact ->
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                attemptingToConnect += listOf(contact.number)
+                                sms.sendTextMessage(contact.number, null, "NIGHTBLAST:GET_PUBLIC_KEY", null, null)
+                            }
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = contact.name
+                        )
+                        Text(
+                            text = if (attemptingToConnect.contains(contact.number)) {
+                                "Attempting to connect. Will not update in real time"
+                            } else "Tap to send connection message",
+                            fontStyle = FontStyle.Italic
+                        )
+                    }
+                }
+            }
+        },
+        onDismissRequest = {
+            onDismiss()
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onDismiss()
+                }
+            ) {
+                Text("Close")
+            }
+        }
+    )
 }
 
 @Preview
