@@ -4,9 +4,9 @@ import android.os.Bundle
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.telephony.SmsManager
+import android.telephony.TelephonyManager
 import android.util.Base64
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -34,7 +34,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,8 +41,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,7 @@ import java.util.Enumeration
 import javax.crypto.Cipher
 import javax.crypto.spec.OAEPParameterSpec
 import javax.crypto.spec.PSource
+
 
 const val myKeyAlias = "nightblast"
 class MainActivity : ComponentActivity() {
@@ -82,30 +84,42 @@ class MainActivity : ComponentActivity() {
     }
 
     fun sendMessage(phoneNumber: String, message: String, priority: Int) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val sms = applicationContext.getSystemService(SmsManager::class.java)
+        // Validate phone number
+        val telephonyManager = applicationContext.getSystemService(TELEPHONY_SERVICE) as TelephonyManager
+        val phoneNumberUtil = PhoneNumberUtil.getInstance()
+        val phoneNumberParsed = phoneNumberUtil.parse(phoneNumber, telephonyManager.simCountryIso.uppercase())
 
-            val publicKey = getPublicKey(applicationContext, phoneNumber)
-
-            if (publicKey == null) {
-                Log.d("TAG", "sendMessage: No public key")
-                return@launch
-            }
-
-            val cipher = Cipher.getInstance("RSA/ECB/OAEPPadding")
-            val oaepSpec = OAEPParameterSpec(
-                "SHA-256",
-                "MGF1",
-                MGF1ParameterSpec.SHA1,
-                PSource.PSpecified.DEFAULT
+        if (phoneNumberUtil.isValidNumber(phoneNumberParsed)) {
+            val validPhoneNumber = phoneNumberUtil.format(
+                phoneNumberParsed,
+                PhoneNumberUtil.PhoneNumberFormat.E164
             )
 
-            cipher.init(Cipher.ENCRYPT_MODE, publicKey, oaepSpec)
-            val encryptedBytes = cipher.doFinal(message.encodeToByteArray())
-            val encryptedBase64 = Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
+            CoroutineScope(Dispatchers.IO).launch {
+                val sms = applicationContext.getSystemService(SmsManager::class.java)
 
-            val parts = sms.divideMessage("NIGHTBLAST:MSG:$encryptedBase64@$priority")
-            sms.sendMultipartTextMessage(phoneNumber, null, parts, null, null)
+                val publicKey = getPublicKey(applicationContext, validPhoneNumber)
+
+                if (publicKey == null) {
+                    Log.d("TAG", "sendMessage: No public key")
+                    return@launch
+                }
+
+                val cipher = Cipher.getInstance("RSA/ECB/OAEPPadding")
+                val oaepSpec = OAEPParameterSpec(
+                    "SHA-256",
+                    "MGF1",
+                    MGF1ParameterSpec.SHA1,
+                    PSource.PSpecified.DEFAULT
+                )
+
+                cipher.init(Cipher.ENCRYPT_MODE, publicKey, oaepSpec)
+                val encryptedBytes = cipher.doFinal(message.encodeToByteArray())
+                val encryptedBase64 = Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
+
+                val parts = sms.divideMessage("NIGHTBLAST:MSG:$encryptedBase64@$priority")
+                sms.sendMultipartTextMessage(validPhoneNumber, null, parts, null, null)
+            }
         }
     }
 
@@ -148,7 +162,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: Int) -> Unit, modifier: Modifier = Modifier) {
-    val phoneNumberTextFieldState = rememberTextFieldState()
     val messageTextFieldState = rememberTextFieldState()
 
     val context = LocalContext.current
@@ -176,7 +189,8 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                                     selected = selectedContacts.contains(contact.number),
                                     onClick = {
                                         if (selectedContacts.contains(contact.number)) {
-                                            selectedContacts = selectedContacts.filter { it != contact.number }
+                                            selectedContacts =
+                                                selectedContacts.filter { it != contact.number }
                                         } else {
                                             selectedContacts += listOf(contact.number)
                                         }
@@ -224,15 +238,13 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
             )
         }
         TextField(
-            phoneNumberTextFieldState
-        )
-        TextField(
             messageTextFieldState,
             placeholder = {
                 Text(
                     "Message (max length 440 chars)"
                 )
-            }
+            },
+            modifier = Modifier.fillMaxWidth()
         )
 
         val priorities = listOf("Just a notification", "Vibrating dialog", "Dialog with vibrations and noise")
@@ -267,10 +279,11 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
         }
         Button({
             val message = messageTextFieldState.text.trim().toString()
-            val phoneNumber = phoneNumberTextFieldState.text.trim().toString()
 
             if (message.length <= 440) {
-                sendMessage(phoneNumber, message, selectedPriority)
+                selectedContacts.forEach { phoneNumber ->
+                    sendMessage(phoneNumber, message, selectedPriority)
+                }
             }
 
         }) {
