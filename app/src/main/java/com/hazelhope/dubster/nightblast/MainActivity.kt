@@ -10,29 +10,37 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -142,9 +150,79 @@ class MainActivity : ComponentActivity() {
 fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: Int) -> Unit, modifier: Modifier = Modifier) {
     val phoneNumberTextFieldState = rememberTextFieldState()
     val messageTextFieldState = rememberTextFieldState()
+
+    val context = LocalContext.current
+
+    val contacts = remember { fetchContacts(context) }
+    var selectedContacts by remember { mutableStateOf(listOf<String>()) }
+    var contactPickerOpen by remember { mutableStateOf(false) }
+
+    if (contactPickerOpen) {
+        AlertDialog(
+            title = {
+                Text(text = "Choose recipients")
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    contacts.forEach { contact ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .selectable(
+                                    selected = selectedContacts.contains(contact.number),
+                                    onClick = {
+                                        if (selectedContacts.contains(contact.number)) {
+                                            selectedContacts = selectedContacts.filter { it != contact.number }
+                                        } else {
+                                            selectedContacts += listOf(contact.number)
+                                        }
+                                    },
+                                    role = Role.Checkbox
+                                )
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                        ) {
+                            Checkbox(
+                                checked = selectedContacts.contains(contact.number),
+                                onCheckedChange = null
+                            )
+                            Text(
+                                text = contact.name + " (${contact.number})"
+                            )
+                        }
+                    }
+                }
+            },
+            onDismissRequest = {
+                contactPickerOpen = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        contactPickerOpen = false
+                    }
+                ) {
+                    Text("Close")
+                }
+            }
+        )
+
+    }
+
     Column(
         modifier = modifier
     ) {
+        Button({
+            contactPickerOpen = true
+        }) {
+            Text(
+                "Select recipients"
+            )
+        }
         TextField(
             phoneNumberTextFieldState
         )
