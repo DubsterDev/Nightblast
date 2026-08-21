@@ -35,7 +35,6 @@ class Alert : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
-            // Optional: Dismiss the keyguard entirely
             getSystemService(KeyguardManager::class.java).requestDismissKeyguard(this, null)
         } else {
             window.addFlags(
@@ -49,6 +48,10 @@ class Alert : ComponentActivity() {
         val message = intent.getStringExtra("MESSAGE") ?: "Oops"
         val sender = intent.getStringExtra("SENDER") ?: "Oops"
 
+        val contact = findContact(applicationContext, sender)
+
+        val contactDisplayName = contact?.name ?: sender
+
         setContent {
             NightblastTheme {
                 Box(
@@ -56,7 +59,7 @@ class Alert : ComponentActivity() {
                 ) {
                     Popup(
                         text = message,
-                        sender = sender,
+                        sender = contactDisplayName,
                         onClose = {
                             finish()
                         }
@@ -88,7 +91,7 @@ fun Popup(text: String, sender: String, onClose: () -> Unit, modifier: Modifier 
                     text = text
                 )
                 Text(
-                    text = "Sent by $sender",
+                    text = "Sent by $sender using Nightblast",
                     color = Color.DarkGray,
                     fontStyle = FontStyle.Italic
                 )
