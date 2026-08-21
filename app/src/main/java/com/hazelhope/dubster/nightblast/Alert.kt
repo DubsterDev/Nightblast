@@ -27,6 +27,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class Alert : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,9 +51,12 @@ class Alert : ComponentActivity() {
         val message = intent.getStringExtra("MESSAGE") ?: "Oops"
         val sender = intent.getStringExtra("SENDER") ?: "Oops"
 
-        val contact = findContact(applicationContext, sender)
+        var contactDisplayName = sender
 
-        val contactDisplayName = contact?.name ?: sender
+        CoroutineScope(Dispatchers.IO).launch {
+            val contact = findContact(applicationContext, sender)
+            contactDisplayName = contact?.name ?: sender
+        }
 
         setContent {
             NightblastTheme {

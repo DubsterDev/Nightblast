@@ -1,13 +1,16 @@
 package com.hazelhope.dubster.nightblast
 
 import android.content.Context
+import android.content.Context.TELEPHONY_SERVICE
 import android.net.Uri
 import android.provider.ContactsContract
+import android.telephony.TelephonyManager
 import android.util.Base64
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.google.i18n.phonenumbers.PhoneNumberUtil
 import kotlinx.coroutines.flow.first
 import java.security.KeyFactory
 import java.security.PublicKey
@@ -29,6 +32,15 @@ suspend fun getPublicKey(
     return KeyFactory.getInstance("RSA").generatePublic(keySpec)
 }
 
+suspend fun hasPublicKey(
+    context: Context,
+    phoneNumber: String
+): Boolean {
+    val key = stringPreferencesKey(phoneNumber)
+
+    return context.dataStore.data.first()[key] != null
+}
+
 suspend fun setPublicKey(context: Context, phoneNumber: String, publicKey: String) {
     val key = stringPreferencesKey(phoneNumber)
     context.dataStore.updateData {
@@ -38,7 +50,7 @@ suspend fun setPublicKey(context: Context, phoneNumber: String, publicKey: Strin
     }
 }
 
-fun fetchContacts(context: Context): List<Contact> {
+suspend fun fetchContacts(context: Context): List<Contact> {
     val contentResolver = context.contentResolver
     val cursor = contentResolver.query(
         ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -56,14 +68,21 @@ fun fetchContacts(context: Context): List<Contact> {
             val id = it.getString(it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.CONTACT_ID))
             val name = it.getString(it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
             val number = it.getString(it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER))
-            contacts.add(Contact(id, name, number))
+            val normalizedNumber = normalizeNumber(context, number)
+
+            if (normalizedNumber != null) {
+                val hasKey = hasPublicKey(context, normalizedNumber)
+                contacts.add(
+                    Contact(id, name, normalizedNumber, hasKey)
+                )
+            }
         }
     }
 
     return contacts
 }
 
-fun findContact(context: Context, phoneNumber: String): Contact? {
+suspend fun findContact(context: Context, phoneNumber: String): Contact? {
     val uri = Uri.withAppendedPath(
         ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
         Uri.encode(phoneNumber)
@@ -82,6 +101,15 @@ fun findContact(context: Context, phoneNumber: String): Contact? {
     )?.use { cursor ->
 
         if (cursor.moveToFirst()) {
+            val number = normalizeNumber(context,
+                cursor.getString(
+                    cursor.getColumnIndexOrThrow(
+                        ContactsContract.PhoneLookup.NUMBER
+                    )
+                )
+            ) ?: return null
+
+            val hasKey = hasPublicKey(context, number)
             return Contact(
                 id = cursor.getString(
                     cursor.getColumnIndexOrThrow(
@@ -93,11 +121,8 @@ fun findContact(context: Context, phoneNumber: String): Contact? {
                         ContactsContract.PhoneLookup.DISPLAY_NAME
                     )
                 ),
-                number = cursor.getString(
-                    cursor.getColumnIndexOrThrow(
-                        ContactsContract.PhoneLookup.NUMBER
-                    )
-                )
+                number = number,
+                hasPublicKey = hasKey
             )
         }
     }
@@ -105,8 +130,24 @@ fun findContact(context: Context, phoneNumber: String): Contact? {
     return null
 }
 
+fun normalizeNumber(context: Context, phoneNumber: String): String? {
+    val telephonyManager = context.getSystemService(TELEPHONY_SERVICE) as TelephonyManager
+    val phoneNumberUtil = PhoneNumberUtil.getInstance()
+    val phoneNumberParsed = phoneNumberUtil.parse(phoneNumber, telephonyManager.simCountryIso.uppercase())
+
+    if (phoneNumberUtil.isValidNumber(phoneNumberParsed)) {
+        val validPhoneNumber = phoneNumberUtil.format(
+            phoneNumberParsed,
+            PhoneNumberUtil.PhoneNumberFormat.E164
+        )
+        return validPhoneNumber
+    }
+    return null
+}
+
 data class Contact(
     val id: String,
     val name: String,
-    val number: String
+    val number: String,
+    val hasPublicKey: Boolean
 )

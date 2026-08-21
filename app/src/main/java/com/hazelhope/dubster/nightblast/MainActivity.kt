@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -84,42 +85,30 @@ class MainActivity : ComponentActivity() {
     }
 
     fun sendMessage(phoneNumber: String, message: String, priority: Int) {
-        // Validate phone number
-        val telephonyManager = applicationContext.getSystemService(TELEPHONY_SERVICE) as TelephonyManager
-        val phoneNumberUtil = PhoneNumberUtil.getInstance()
-        val phoneNumberParsed = phoneNumberUtil.parse(phoneNumber, telephonyManager.simCountryIso.uppercase())
+        CoroutineScope(Dispatchers.IO).launch {
+            val sms = applicationContext.getSystemService(SmsManager::class.java)
 
-        if (phoneNumberUtil.isValidNumber(phoneNumberParsed)) {
-            val validPhoneNumber = phoneNumberUtil.format(
-                phoneNumberParsed,
-                PhoneNumberUtil.PhoneNumberFormat.E164
+            val publicKey = getPublicKey(applicationContext, phoneNumber)
+
+            if (publicKey == null) {
+                Log.d("TAG", "sendMessage: No public key")
+                return@launch
+            }
+
+            val cipher = Cipher.getInstance("RSA/ECB/OAEPPadding")
+            val oaepSpec = OAEPParameterSpec(
+                "SHA-256",
+                "MGF1",
+                MGF1ParameterSpec.SHA1,
+                PSource.PSpecified.DEFAULT
             )
 
-            CoroutineScope(Dispatchers.IO).launch {
-                val sms = applicationContext.getSystemService(SmsManager::class.java)
+            cipher.init(Cipher.ENCRYPT_MODE, publicKey, oaepSpec)
+            val encryptedBytes = cipher.doFinal(message.encodeToByteArray())
+            val encryptedBase64 = Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
 
-                val publicKey = getPublicKey(applicationContext, validPhoneNumber)
-
-                if (publicKey == null) {
-                    Log.d("TAG", "sendMessage: No public key")
-                    return@launch
-                }
-
-                val cipher = Cipher.getInstance("RSA/ECB/OAEPPadding")
-                val oaepSpec = OAEPParameterSpec(
-                    "SHA-256",
-                    "MGF1",
-                    MGF1ParameterSpec.SHA1,
-                    PSource.PSpecified.DEFAULT
-                )
-
-                cipher.init(Cipher.ENCRYPT_MODE, publicKey, oaepSpec)
-                val encryptedBytes = cipher.doFinal(message.encodeToByteArray())
-                val encryptedBase64 = Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
-
-                val parts = sms.divideMessage("NIGHTBLAST:MSG:$encryptedBase64@$priority")
-                sms.sendMultipartTextMessage(validPhoneNumber, null, parts, null, null)
-            }
+            val parts = sms.divideMessage("NIGHTBLAST:MSG:$encryptedBase64@$priority")
+            sms.sendMultipartTextMessage(phoneNumber, null, parts, null, null)
         }
     }
 
@@ -166,9 +155,13 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
 
     val context = LocalContext.current
 
-    val contacts = remember { fetchContacts(context) }
+    var contacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
     var selectedContacts by remember { mutableStateOf(listOf<String>()) }
     var contactPickerOpen by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        contacts = fetchContacts(context)
+    }
 
     if (contactPickerOpen) {
         AlertDialog(
