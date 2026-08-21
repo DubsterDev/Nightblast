@@ -29,7 +29,6 @@ class SMSReceiver : BroadcastReceiver() {
             messages.forEach { sms ->
                 sender = sms.originatingAddress
                 body += sms.displayMessageBody
-
             }
 
             if (body.startsWith("NIGHTBLAST:")) {
@@ -42,15 +41,15 @@ class SMSReceiver : BroadcastReceiver() {
                 val publicKey = keyStore.getCertificate(myKeyAlias).publicKey
 
                 val command = body.replace("NIGHTBLAST:", "")
-                if (command == "GET_PUBLIC_KEY") {
+                if (command == "GETPUBLICKEY") {
                     val encodedBytes = publicKey.encoded
                     val b64 = Base64.encodeToString(encodedBytes, Base64.NO_WRAP)
-                    val message = "NIGHTBLAST:RECV_PUB_KEY:$b64"
+                    val message = "NIGHTBLAST:RECVPUBKEY:$b64"
                     val parts = sms.divideMessage(message)
 
                     sms.sendMultipartTextMessage(sender, null, parts, null, null)
-                } else if (command.startsWith("RECV_PUB_KEY:") && sender != null) {
-                    val pubKey = command.replace("RECV_PUB_KEY:", "")
+                } else if (command.startsWith("RECVPUBKEY:") && sender != null) {
+                    val pubKey = command.replace("RECVPUBKEY:", "")
                     Log.d("TAG", "onReceive: pub key $pubKey from $sender")
                     CoroutineScope(Dispatchers.IO).launch {
                         setPublicKey(context, sender, pubKey)

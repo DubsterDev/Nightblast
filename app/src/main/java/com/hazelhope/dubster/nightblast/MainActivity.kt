@@ -346,7 +346,7 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                             .fillMaxWidth()
                             .clickable {
                                 attemptingToConnect += listOf(contact.number)
-                                sms.sendTextMessage(contact.number, null, "NIGHTBLAST:GET_PUBLIC_KEY", null, null)
+                                sms.sendTextMessage(contact.number, null, "NIGHTBLAST:GETPUBLICKEY", null, null)
                             }
                             .padding(12.dp)
                     ) {
