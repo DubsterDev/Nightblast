@@ -355,7 +355,7 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                         )
                         Text(
                             text = if (attemptingToConnect.contains(contact.number)) {
-                                "Attempting to connect. Will not update in real time"
+                                "Attempting to connect. Status will not update in real time"
                             } else "Tap to send connection message",
                             fontStyle = FontStyle.Italic
                         )
