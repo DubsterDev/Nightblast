@@ -279,7 +279,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
             modifier = Modifier.fillMaxWidth()
         )
 
-        val priorities = listOf("Just a notification", "Vibrating dialog", "Dialog with vibrations and noise")
+        val priorities = listOf("Vibrations", "Vibrations and sound")
         var selectedPriority by remember { mutableIntStateOf(0) }
         Column(Modifier.selectableGroup()) {
             priorities.forEachIndexed { index, priority ->
