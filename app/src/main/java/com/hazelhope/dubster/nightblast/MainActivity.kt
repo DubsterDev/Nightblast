@@ -257,7 +257,8 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
     }
 
     Column(
-        modifier = modifier
+        modifier = modifier.padding(12.dp).verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Button({
             contactPickerOpen = true
@@ -270,7 +271,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
             messageTextFieldState,
             placeholder = {
                 Text(
-                    "Message (max length 440 chars)"
+                    "Message"
                 )
             },
             modifier = Modifier.fillMaxWidth()
@@ -278,6 +279,11 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
         Text(
             text = "${messageTextFieldState.text.length}/440 characters",
             modifier = Modifier.align(Alignment.End)
+        )
+
+        Text(
+            text = "Priority level",
+            style = MaterialTheme.typography.headlineSmall
         )
 
         val priorities = listOf("Vibrations", "Vibrations and sound")
