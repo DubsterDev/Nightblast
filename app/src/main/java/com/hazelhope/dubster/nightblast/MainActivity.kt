@@ -1,6 +1,9 @@
 package com.hazelhope.dubster.nightblast
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.telephony.SmsManager
@@ -52,8 +55,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -75,16 +80,30 @@ class MainActivity : ComponentActivity() {
 
         createKeyIfNeeded()
 
+        val hasSendSms = ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
+        val hasReadSms = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+        val hasReceiveSms = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
+        val hasReadContacts = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
+        val hasSystemAlertWindow = Settings.canDrawOverlays(this)
 
+        val needsToGenerateKey = needsToGenerateKey()
+
+        val hasAllPermissions = hasSendSms && hasReadSms && hasReceiveSms && hasReadContacts && hasSystemAlertWindow && !needsToGenerateKey
+
+        Log.d("TAG", "onCreate: hasSendSms $hasSendSms, hasReadSms $hasReadSms, hasReceiveSms $hasReceiveSms, hasReadContacts $hasReadContacts, hasSystemAlertWindow $hasSystemAlertWindow, needsToGenerateKey $needsToGenerateKey")
 
         enableEdgeToEdge()
         setContent {
             NightblastTheme {
-                SendMessage(
-                    { phoneNumber, message, priority ->
-                        sendMessage(phoneNumber, message, priority)
-                    }
-                )
+                if (hasAllPermissions) {
+                    SendMessage(
+                        { phoneNumber, message, priority ->
+                            sendMessage(phoneNumber, message, priority)
+                        }
+                    )
+                } else {
+                    Onboarding()
+                }
             }
         }
     }
@@ -115,6 +134,22 @@ class MainActivity : ComponentActivity() {
             val parts = sms.divideMessage("NIGHTBLAST:MSG:$encryptedBase64@$priority")
             sms.sendMultipartTextMessage(phoneNumber, null, parts, null, null)
         }
+    }
+
+    fun needsToGenerateKey(): Boolean {
+        val keyStore = KeyStore.getInstance("AndroidKeyStore")
+        keyStore.load(null)
+
+        val aliases: Enumeration<String?> = keyStore.aliases()
+        var needsToGenerateKey = true
+        while (aliases.hasMoreElements()) {
+            val alias = aliases.nextElement()
+            if (alias == myKeyAlias) {
+                needsToGenerateKey = false
+            }
+        }
+
+        return needsToGenerateKey
     }
 
     fun createKeyIfNeeded() {
@@ -308,7 +343,9 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                                 "Message"
                             )
                         },
-                        modifier = Modifier.weight(1f).heightIn(max = maxMessageHeight)
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(max = maxMessageHeight)
                     )
                     Column(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -365,7 +402,13 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                             .fillMaxWidth()
                             .clickable {
                                 attemptingToConnect += listOf(contact.number)
-                                sms.sendTextMessage(contact.number, null, "NIGHTBLAST:GETPUBLICKEY", null, null)
+                                sms.sendTextMessage(
+                                    contact.number,
+                                    null,
+                                    "NIGHTBLAST:GETPUBLICKEY",
+                                    null,
+                                    null
+                                )
                                 sendPublicKey(context, contact.number)
                             }
                             .padding(12.dp)
@@ -398,10 +441,110 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
     )
 }
 
+@Composable
+fun Onboarding(modifier: Modifier = Modifier) {
+    var step by remember { mutableIntStateOf(0) }
+    Scaffold(
+        modifier = modifier
+    ) { innerPadding ->
+        val maxSteps = 0
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .padding(12.dp)
+        ) {
+            when (step) {
+                0 -> {
+                    OnboardingOne(
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceAround,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TextButton(
+                    {
+                        step--
+                    },
+                    modifier = Modifier
+                        .weight(1f),
+                    enabled = step > 0
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Icon(
+                            painterResource(R.drawable.outline_arrow_back),
+                            contentDescription = null
+                        )
+                        Text(
+                            text = "Previous"
+                        )
+                    }
+                }
+                TextButton(
+                    {
+                        step++
+                    },
+                    modifier = Modifier
+                        .weight(1f),
+                    enabled = step < maxSteps
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = "Next"
+                        )
+                        Icon(
+                            painterResource(R.drawable.outline_arrow_forward),
+                            contentDescription = null
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OnboardingOne(modifier: Modifier = Modifier) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        Image(
+            painterResource(R.drawable.nightblast_logo),
+            contentDescription = "Nightblast logo",
+            modifier = Modifier.size(128.dp)
+        )
+        Text(
+            text = "Welcome to Nightblast",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Maybe I should write a short summary about how it works. :D",
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
 @Preview
 @Composable
 fun SendMessagePreview() {
     NightblastTheme {
         SendMessage({ _, _, _ -> })
+    }
+}
+
+@Preview
+@Composable
+fun OnboardingPreview() {
+    NightblastTheme {
+        Onboarding()
     }
 }
