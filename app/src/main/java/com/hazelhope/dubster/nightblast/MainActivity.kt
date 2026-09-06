@@ -1,6 +1,7 @@
 package com.hazelhope.dubster.nightblast
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
@@ -9,9 +10,12 @@ import android.security.keystore.KeyProperties
 import android.telephony.SmsManager
 import android.util.Base64
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,8 +33,10 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -42,6 +48,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,10 +62,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -102,7 +114,11 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                    Onboarding()
+                    Onboarding(
+                        hasContactsPermissions = hasReadContacts,
+                        hasSmsPermissions = hasSendSms && hasReadSms && hasReceiveSms,
+                        hasDisplayOverOtherAppsPermissions = hasSystemAlertWindow
+                    )
                 }
             }
         }
@@ -442,12 +458,17 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
 }
 
 @Composable
-fun Onboarding(modifier: Modifier = Modifier) {
+fun Onboarding(
+    hasContactsPermissions: Boolean,
+    hasSmsPermissions: Boolean,
+    hasDisplayOverOtherAppsPermissions: Boolean,
+    modifier: Modifier = Modifier
+) {
     var step by remember { mutableIntStateOf(0) }
     Scaffold(
         modifier = modifier
     ) { innerPadding ->
-        val maxSteps = 0
+        val maxSteps = 1
 
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -459,6 +480,14 @@ fun Onboarding(modifier: Modifier = Modifier) {
             when (step) {
                 0 -> {
                     OnboardingOne(
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                1 -> {
+                    OnboardingTwo(
+                        hasContactsPermissions,
+                        hasSmsPermissions,
+                        hasDisplayOverOtherAppsPermissions,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -533,6 +562,200 @@ fun OnboardingOne(modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun OnboardingTwo(
+    hasContactsPermissions: Boolean,
+    hasSmsPermissions: Boolean,
+    hasDisplayOverOtherAppsPermissions: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+    var hasContactsPermissions by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_CONTACTS
+            ) == PackageManager.PERMISSION_GRANTED
+
+        )
+    }
+
+    var hasSmsPermissions by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+                    && ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECEIVE_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+                    && ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.SEND_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+
+        )
+    }
+
+    var hasDisplayOverOtherAppsPermissions by remember {
+        mutableStateOf(
+            Settings.canDrawOverlays(context)
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.filter { it.value }
+
+        if (granted.containsKey(Manifest.permission.READ_SMS) && granted.containsKey(Manifest.permission.RECEIVE_SMS) && granted.containsKey(Manifest.permission.SEND_SMS)) {
+            hasSmsPermissions = true
+        } else if (granted.containsKey(Manifest.permission.READ_CONTACTS)) {
+            hasContactsPermissions = true
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    hasDisplayOverOtherAppsPermissions = Settings.canDrawOverlays(context)
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.verticalScroll(rememberScrollState())
+    ) {
+        Text(
+            text = "Permissions",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Nightblast requires a few permissions to function properly.",
+            textAlign = TextAlign.Center
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = "Contacts",
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Left,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Nightblast uses your contacts to allow you to connect with other Nightblast users and send blasts to people in your contacts."
+                )
+                Button(
+                    {
+                        permissionLauncher.launch(arrayOf(Manifest.permission.READ_CONTACTS))
+                    },
+                    enabled = !hasContactsPermissions,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text(
+                        if (hasContactsPermissions) "Granted"
+                        else "Grant"
+                    )
+                }
+            }
+        }
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = "Send and Receive SMS",
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Left,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Nightblast uses SMS to send and receive blasts, instead of using a internet-based service."
+                )
+                Button(
+                    {
+                        permissionLauncher.launch(arrayOf(Manifest.permission.SEND_SMS, Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS))
+                    },
+                    enabled = !hasSmsPermissions,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text(
+                        if (hasSmsPermissions) "Granted"
+                        else "Grant"
+                    )
+                }
+            }
+        }
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = "Display over other apps",
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Left,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "When you receive a blast from someone else, you probably want to see it right away. Nightblast uses the display over other apps to open the dialog box over anything you're currently using."
+                )
+                Button(
+                    {
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            "package:${context.packageName}".toUri()
+                        )
+
+                        Toast.makeText(context, "Find Nightblast, tap it, and turn on Allow display over other apps", Toast.LENGTH_LONG).show()
+
+                        context.startActivity(intent)
+
+                    },
+                    enabled = !hasDisplayOverOtherAppsPermissions,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text(
+                        if (hasDisplayOverOtherAppsPermissions) "Granted"
+                        else "Grant"
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Preview
 @Composable
 fun SendMessagePreview() {
@@ -545,6 +768,22 @@ fun SendMessagePreview() {
 @Composable
 fun OnboardingPreview() {
     NightblastTheme {
-        Onboarding()
+        Onboarding(
+            hasContactsPermissions = true,
+            hasSmsPermissions = false,
+            hasDisplayOverOtherAppsPermissions = false
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun OnboardingTwoPreview() {
+    NightblastTheme {
+        OnboardingTwo(
+            hasContactsPermissions = true,
+            hasSmsPermissions = false,
+            hasDisplayOverOtherAppsPermissions = false
+        )
     }
 }
