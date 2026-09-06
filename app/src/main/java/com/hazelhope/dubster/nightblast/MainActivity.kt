@@ -44,6 +44,8 @@ import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -81,6 +83,7 @@ import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.spec.MGF1ParameterSpec
@@ -96,8 +99,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        createKeyIfNeeded()
-
         val hasSendSms = ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
         val hasReadSms = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
         val hasReceiveSms = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
@@ -107,8 +108,6 @@ class MainActivity : ComponentActivity() {
         val needsToGenerateKey = needsToGenerateKey()
 
         val hasAllPermissions = hasSendSms && hasReadSms && hasReceiveSms && hasReadContacts && hasSystemAlertWindow && !needsToGenerateKey
-
-        Log.d("TAG", "onCreate: hasSendSms $hasSendSms, hasReadSms $hasReadSms, hasReceiveSms $hasReceiveSms, hasReadContacts $hasReadContacts, hasSystemAlertWindow $hasSystemAlertWindow, needsToGenerateKey $needsToGenerateKey")
 
         enableEdgeToEdge()
         setContent {
@@ -140,6 +139,9 @@ class MainActivity : ComponentActivity() {
                         Onboarding(
                             {
                                 showOnboarding = false
+                            },
+                            {
+                                createKeyIfNeeded()
                             }
                         )
                     }
@@ -484,6 +486,7 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
 @Composable
 fun Onboarding(
     exit: () -> Unit,
+    createKey: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var step by remember { mutableIntStateOf(0) }
@@ -491,7 +494,7 @@ fun Onboarding(
     Scaffold(
         modifier = modifier
     ) { innerPadding ->
-        val maxSteps = 1
+        val maxSteps = 3
 
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -529,6 +532,16 @@ fun Onboarding(
                         OnboardingTwo(
                             { canAdvance = it }
                         )
+                    }
+                    2 -> {
+                        OnboardingGenerateKey(
+                            { canAdvance = it },
+                            { createKey() },
+                            { step++ }
+                        )
+                    }
+                    3 -> {
+                        OnboardingFour()
                     }
                 }
             }
@@ -803,6 +816,63 @@ fun OnboardingTwo(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun OnboardingGenerateKey(
+    setAdvanceable: (Boolean) -> Unit,
+    generateKey: () -> Unit,
+    advanceNow: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LaunchedEffect(Unit) {
+        setAdvanceable(false)
+        withContext(Dispatchers.Default) {
+            generateKey()
+        }
+        setAdvanceable(true)
+        advanceNow()
+    }
+    Column(
+        verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        ContainedLoadingIndicator(
+            modifier = Modifier.size(96.dp)
+        )
+        Text(
+            text = "Generating encryption key",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Please wait a moment",
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun OnboardingFour(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "Everything is ready!",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Press next to continue, then add people by clicking the add people button in the top right corner",
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
 @Preview
 @Composable
 fun SendMessagePreview() {
@@ -815,7 +885,7 @@ fun SendMessagePreview() {
 @Composable
 fun OnboardingPreview() {
     NightblastTheme {
-        Onboarding({})
+        Onboarding({}, {})
     }
 }
 
@@ -824,5 +894,13 @@ fun OnboardingPreview() {
 fun OnboardingTwoPreview() {
     NightblastTheme {
         OnboardingTwo({})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun OnboardingGenerateKeyPreview() {
+    NightblastTheme {
+        OnboardingGenerateKey({},  {}, {})
     }
 }
