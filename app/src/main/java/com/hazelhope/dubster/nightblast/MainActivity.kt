@@ -114,11 +114,7 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                    Onboarding(
-                        hasContactsPermissions = hasReadContacts,
-                        hasSmsPermissions = hasSendSms && hasReadSms && hasReceiveSms,
-                        hasDisplayOverOtherAppsPermissions = hasSystemAlertWindow
-                    )
+                    Onboarding()
                 }
             }
         }
@@ -459,9 +455,6 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
 
 @Composable
 fun Onboarding(
-    hasContactsPermissions: Boolean,
-    hasSmsPermissions: Boolean,
-    hasDisplayOverOtherAppsPermissions: Boolean,
     modifier: Modifier = Modifier
 ) {
     var step by remember { mutableIntStateOf(0) }
@@ -485,9 +478,6 @@ fun Onboarding(
                 }
                 1 -> {
                     OnboardingTwo(
-                        hasContactsPermissions,
-                        hasSmsPermissions,
-                        hasDisplayOverOtherAppsPermissions,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -564,9 +554,6 @@ fun OnboardingOne(modifier: Modifier = Modifier) {
 
 @Composable
 fun OnboardingTwo(
-    hasContactsPermissions: Boolean,
-    hasSmsPermissions: Boolean,
-    hasDisplayOverOtherAppsPermissions: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -768,11 +755,7 @@ fun SendMessagePreview() {
 @Composable
 fun OnboardingPreview() {
     NightblastTheme {
-        Onboarding(
-            hasContactsPermissions = true,
-            hasSmsPermissions = false,
-            hasDisplayOverOtherAppsPermissions = false
-        )
+        Onboarding()
     }
 }
 
@@ -780,10 +763,6 @@ fun OnboardingPreview() {
 @Composable
 fun OnboardingTwoPreview() {
     NightblastTheme {
-        OnboardingTwo(
-            hasContactsPermissions = true,
-            hasSmsPermissions = false,
-            hasDisplayOverOtherAppsPermissions = false
-        )
+        OnboardingTwo()
     }
 }
