@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Context.TELEPHONY_SERVICE
 import android.net.Uri
 import android.provider.ContactsContract
+import android.telephony.SmsManager
 import android.telephony.TelephonyManager
 import android.util.Base64
 import androidx.datastore.core.DataStore
@@ -13,6 +14,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import kotlinx.coroutines.flow.first
 import java.security.KeyFactory
+import java.security.KeyStore
 import java.security.PublicKey
 import java.security.spec.X509EncodedKeySpec
 
@@ -143,6 +145,21 @@ fun normalizeNumber(context: Context, phoneNumber: String): String? {
         return validPhoneNumber
     }
     return null
+}
+
+fun sendPublicKey(context: Context, to: String) {
+    val sms = context.getSystemService(SmsManager::class.java)
+
+    val keyStore = KeyStore.getInstance("AndroidKeyStore")
+    keyStore.load(null)
+    val publicKey = keyStore.getCertificate(myKeyAlias).publicKey
+
+    val encodedBytes = publicKey.encoded
+    val b64 = Base64.encodeToString(encodedBytes, Base64.NO_WRAP)
+    val message = "NIGHTBLAST:RECVPUBKEY:$b64"
+    val parts = sms.divideMessage(message)
+
+    sms.sendMultipartTextMessage(to, null, parts, null, null)
 }
 
 data class Contact(

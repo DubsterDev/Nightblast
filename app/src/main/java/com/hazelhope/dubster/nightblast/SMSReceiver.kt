@@ -32,22 +32,14 @@ class SMSReceiver : BroadcastReceiver() {
             }
 
             if (body.startsWith("NIGHTBLAST:")) {
-                val sms = context.getSystemService(SmsManager::class.java)
-
                 val keyStore = KeyStore.getInstance("AndroidKeyStore")
                 keyStore.load(null)
                 val entry = keyStore.getEntry(myKeyAlias, null)
                 val privateKey = (entry as KeyStore.PrivateKeyEntry).privateKey
-                val publicKey = keyStore.getCertificate(myKeyAlias).publicKey
 
                 val command = body.replace("NIGHTBLAST:", "")
-                if (command == "GETPUBLICKEY") {
-                    val encodedBytes = publicKey.encoded
-                    val b64 = Base64.encodeToString(encodedBytes, Base64.NO_WRAP)
-                    val message = "NIGHTBLAST:RECVPUBKEY:$b64"
-                    val parts = sms.divideMessage(message)
-
-                    sms.sendMultipartTextMessage(sender, null, parts, null, null)
+                if (command == "GETPUBLICKEY" && sender != null) {
+                    sendPublicKey(context, sender)
                 } else if (command.startsWith("RECVPUBKEY:") && sender != null) {
                     val pubKey = command.replace("RECVPUBKEY:", "")
                     Log.d("TAG", "onReceive: pub key $pubKey from $sender")
