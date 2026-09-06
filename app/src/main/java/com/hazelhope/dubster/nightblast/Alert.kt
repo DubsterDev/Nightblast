@@ -6,26 +6,25 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,13 +50,6 @@ class Alert : ComponentActivity() {
         val message = intent.getStringExtra("MESSAGE") ?: "Oops"
         val sender = intent.getStringExtra("SENDER") ?: "Oops"
 
-        var contactDisplayName = sender
-
-        CoroutineScope(Dispatchers.IO).launch {
-            val contact = findContact(applicationContext, sender)
-            contactDisplayName = contact?.name ?: sender
-        }
-
         setContent {
             NightblastTheme {
                 Box(
@@ -65,7 +57,7 @@ class Alert : ComponentActivity() {
                 ) {
                     Popup(
                         text = message,
-                        sender = contactDisplayName,
+                        sender = sender,
                         onClose = {
                             finish()
                         }
@@ -79,6 +71,17 @@ class Alert : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Popup(text: String, sender: String, onClose: () -> Unit, modifier: Modifier = Modifier) {
+    var senderName by remember { mutableStateOf(sender) }
+
+    val context = LocalContext.current
+
+    LaunchedEffect(sender) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val contact = findContact(context, sender)
+            senderName = contact?.name ?: sender
+        }
+    }
+
     AlertDialog(
         onDismissRequest = { onClose() },
         confirmButton = {
@@ -97,7 +100,7 @@ fun Popup(text: String, sender: String, onClose: () -> Unit, modifier: Modifier 
                     text = text
                 )
                 Text(
-                    text = "Sent by $sender using Nightblast",
+                    text = "Sent by $senderName using Nightblast",
                     color = Color.DarkGray,
                     fontStyle = FontStyle.Italic
                 )
