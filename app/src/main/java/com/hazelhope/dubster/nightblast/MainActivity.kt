@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -26,6 +27,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,7 +43,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -256,7 +262,11 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
     }
 
     Column(
-        modifier = modifier.imePadding().padding(12.dp).verticalScroll(rememberScrollState()),
+        modifier = modifier
+            .fillMaxSize()
+            .imePadding()
+            .padding(12.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         var selectedPriority by remember { mutableIntStateOf(0) }
@@ -267,6 +277,9 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                 "Select recipients"
             )
         }
+        Spacer(
+            modifier = Modifier.weight(1f)
+        )
         ButtonGroup(
             overflowIndicator = { menuState ->
                 ButtonGroupDefaults.OverflowIndicator(
@@ -292,31 +305,46 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
             )
 
         }
-        TextField(
-            messageTextFieldState,
-            placeholder = {
-                Text(
-                    "Message"
-                )
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Text(
-            text = "${messageTextFieldState.text.length}/440 characters",
-            modifier = Modifier.align(Alignment.End)
-        )
-        Button({
-            val message = messageTextFieldState.text.trim().toString()
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            TextField(
+                messageTextFieldState,
+                placeholder = {
+                    Text(
+                        "Message"
+                    )
+                },
+                modifier = Modifier.weight(1f)
+            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (messageTextFieldState.text.length > 400) {
+                    Text(
+                        text = (440 - messageTextFieldState.text.length).coerceAtLeast(0).toString(),
+                        color = if (messageTextFieldState.text.length > 440) MaterialTheme.colorScheme.error else Color.Unspecified
+                    )
+                }
+                FilledIconButton({
+                    val message = messageTextFieldState.text.trim().toString()
 
-            if (message.length <= 440) {
-                selectedContacts.forEach { phoneNumber ->
-                    sendMessage(phoneNumber, message, selectedPriority)
+                    if (message.length <= 440) {
+                        selectedContacts.forEach { phoneNumber ->
+                            sendMessage(phoneNumber, message, selectedPriority)
+                        }
+                    }
+                }) {
+                    Icon(
+                        painterResource(R.drawable.outline_send),
+                        contentDescription = "Send message"
+                    )
                 }
             }
-
-        }) {
-            Text("Send it")
         }
+
     }
 }
 
