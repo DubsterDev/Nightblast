@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.telephony.SmsManager
-import android.telephony.TelephonyManager
 import android.util.Base64
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -44,10 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -277,6 +274,10 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                 )
             },
             modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            text = "${messageTextFieldState.text.length}/440 characters",
+            modifier = Modifier.align(Alignment.End)
         )
 
         val priorities = listOf("Vibrations", "Vibrations and sound")
