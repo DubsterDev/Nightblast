@@ -11,11 +11,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -23,7 +24,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Checkbox
@@ -161,7 +161,6 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
 
     var contacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
     var selectedContacts by remember { mutableStateOf(listOf<String>()) }
-    var contactPickerOpen by remember { mutableStateOf(false) }
 
     var connectDialogOpen by remember { mutableStateOf(false) }
 
@@ -172,179 +171,155 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
         contacts = fetchContacts(context)
     }
 
-    if (contactPickerOpen) {
-        AlertDialog(
-            title = {
-                Text(text = "Choose recipients")
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier.verticalScroll(rememberScrollState())
-                ) {
-                    contacts.filter { it.hasPublicKey }.forEach { contact ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .selectable(
-                                    selected = selectedContacts.contains(contact.number),
-                                    onClick = {
-                                        if (selectedContacts.contains(contact.number)) {
-                                            selectedContacts =
-                                                selectedContacts.filter { it != contact.number }
-                                        } else {
-                                            selectedContacts += listOf(contact.number)
-                                        }
-                                    },
-                                    role = Role.Checkbox
-                                )
-                                .fillMaxWidth()
-                                .padding(12.dp)
-                        ) {
-                            Checkbox(
-                                checked = selectedContacts.contains(contact.number),
-                                onCheckedChange = null
-                            )
-                            Text(
-                                text = contact.name
-                            )
-                        }
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp)
-                            .clickable {
-                                contactsRefreshKey++
-                            }
-                    ) {
-                        Text(
-                            text = "Refresh"
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp)
-                            .clickable {
-                                connectDialogOpen = true
-                            }
-                    ) {
-                        Text(
-                            text = "Connect to more contacts"
-                        )
-                    }
-                }
-            },
-            onDismissRequest = {
-                contactPickerOpen = false
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        contactPickerOpen = false
-                    }
-                ) {
-                    Text("Close")
-                }
-            }
-        )
-
-    }
-
     if (connectDialogOpen) {
         InviteContactsDialog(contacts, {connectDialogOpen = false})
     }
 
-    Column(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .imePadding()
             .padding(12.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        var selectedPriority by remember { mutableIntStateOf(0) }
-        Button({
-            contactPickerOpen = true
-        }) {
-            Text(
-                "Select recipients"
-            )
-        }
-        Spacer(
-            modifier = Modifier.weight(1f)
-        )
-        ButtonGroup(
-            overflowIndicator = { menuState ->
-                ButtonGroupDefaults.OverflowIndicator(
-                    menuState = menuState
+        val maxMessageHeight = maxHeight * 0.35f
+        Column(
+            modifier = Modifier
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                contacts.filter { it.hasPublicKey }.forEach { contact ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .selectable(
+                                selected = selectedContacts.contains(contact.number),
+                                onClick = {
+                                    if (selectedContacts.contains(contact.number)) {
+                                        selectedContacts =
+                                            selectedContacts.filter { it != contact.number }
+                                    } else {
+                                        selectedContacts += listOf(contact.number)
+                                    }
+                                },
+                                role = Role.Checkbox
+                            )
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    ) {
+                        Checkbox(
+                            checked = selectedContacts.contains(contact.number),
+                            onCheckedChange = null
+                        )
+                        Text(
+                            text = contact.name
+                        )
+                    }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                        .clickable {
+                            contactsRefreshKey++
+                        }
+                ) {
+                    Text(
+                        text = "Refresh"
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                        .clickable {
+                            connectDialogOpen = true
+                        }
+                ) {
+                    Text(
+                        text = "Connect to more contacts"
+                    )
+                }
+            }
+
+            var selectedPriority by remember { mutableIntStateOf(0) }
+            ButtonGroup(
+                overflowIndicator = { menuState ->
+                    ButtonGroupDefaults.OverflowIndicator(
+                        menuState = menuState
+                    )
+
+                }
+            ) {
+                toggleableItem(
+                    checked = selectedPriority == 0,
+                    label = "Vibrations",
+                    onCheckedChange = {
+                        selectedPriority = 0
+                    }
+                )
+
+                toggleableItem(
+                    checked = selectedPriority == 1,
+                    label = "Vibrations and sound",
+                    onCheckedChange = {
+                        selectedPriority = 1
+                    }
                 )
 
             }
-        ) {
-            toggleableItem(
-                checked = selectedPriority == 0,
-                label = "Vibrations",
-                onCheckedChange = {
-                    selectedPriority = 0
-                }
-            )
-
-            toggleableItem(
-                checked = selectedPriority == 1,
-                label = "Vibrations and sound",
-                onCheckedChange = {
-                    selectedPriority = 1
-                }
-            )
-
-        }
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            TextField(
-                messageTextFieldState,
-                placeholder = {
-                    Text(
-                        "Message"
-                    )
-                },
-                modifier = Modifier.weight(1f)
-            )
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (messageTextFieldState.text.length > 400) {
-                    Text(
-                        text = (440 - messageTextFieldState.text.length).coerceAtLeast(0).toString(),
-                        color = if (messageTextFieldState.text.length > 440) MaterialTheme.colorScheme.error else Color.Unspecified
-                    )
-                }
-                FilledIconButton({
-                    val message = messageTextFieldState.text.trim().toString()
-
-                    if (message.length <= 440) {
-                        selectedContacts.forEach { phoneNumber ->
-                            sendMessage(phoneNumber, message, selectedPriority)
-                        }
+                TextField(
+                    messageTextFieldState,
+                    placeholder = {
+                        Text(
+                            "Message"
+                        )
+                    },
+                    modifier = Modifier.weight(1f).heightIn(max = maxMessageHeight)
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (messageTextFieldState.text.length > 400) {
+                        Text(
+                            text = (440 - messageTextFieldState.text.length).coerceAtLeast(0).toString(),
+                            color = if (messageTextFieldState.text.length > 440) MaterialTheme.colorScheme.error else Color.Unspecified
+                        )
                     }
-                }) {
-                    Icon(
-                        painterResource(R.drawable.outline_send),
-                        contentDescription = "Send message"
-                    )
+                    FilledIconButton({
+                        val message = messageTextFieldState.text.trim().toString()
+
+                        if (message.length <= 440) {
+                            selectedContacts.forEach { phoneNumber ->
+                                sendMessage(phoneNumber, message, selectedPriority)
+                            }
+                        }
+                    }) {
+                        Icon(
+                            painterResource(R.drawable.outline_send),
+                            contentDescription = "Send message"
+                        )
+                    }
                 }
             }
-        }
 
+        }
     }
 }
 
