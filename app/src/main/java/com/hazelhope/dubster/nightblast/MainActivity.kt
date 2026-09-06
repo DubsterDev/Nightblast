@@ -15,19 +15,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -261,47 +259,38 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
         modifier = modifier.imePadding().padding(12.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = "Priority level",
-            style = MaterialTheme.typography.headlineSmall
-        )
-
-        val priorities = listOf("Vibrations", "Vibrations and sound")
         var selectedPriority by remember { mutableIntStateOf(0) }
-        Column(Modifier.selectableGroup()) {
-            priorities.forEachIndexed { index, priority ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .selectable(
-                            selected = (index == selectedPriority),
-                            onClick = {
-                                selectedPriority = index
-                            },
-                            role = Role.RadioButton
-                        )
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = (index == selectedPriority),
-                        onClick = null
-                    )
-                    Text(
-                        text = priority,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                }
-            }
-        }
         Button({
             contactPickerOpen = true
         }) {
             Text(
                 "Select recipients"
             )
+        }
+        ButtonGroup(
+            overflowIndicator = { menuState ->
+                ButtonGroupDefaults.OverflowIndicator(
+                    menuState = menuState
+                )
+
+            }
+        ) {
+            toggleableItem(
+                checked = selectedPriority == 0,
+                label = "Vibrations",
+                onCheckedChange = {
+                    selectedPriority = 0
+                }
+            )
+
+            toggleableItem(
+                checked = selectedPriority == 1,
+                label = "Vibrations and sound",
+                onCheckedChange = {
+                    selectedPriority = 1
+                }
+            )
+
         }
         TextField(
             messageTextFieldState,
