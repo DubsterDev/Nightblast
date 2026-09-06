@@ -107,14 +107,20 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NightblastTheme {
-                if (hasAllPermissions) {
+                var showOnboarding by remember { mutableStateOf(!hasAllPermissions) }
+
+                if (!showOnboarding) {
                     SendMessage(
                         { phoneNumber, message, priority ->
                             sendMessage(phoneNumber, message, priority)
                         }
                     )
                 } else {
-                    Onboarding()
+                    Onboarding(
+                        {
+                            showOnboarding = false
+                        }
+                    )
                 }
             }
         }
@@ -455,9 +461,11 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
 
 @Composable
 fun Onboarding(
+    exit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var step by remember { mutableIntStateOf(0) }
+    var canAdvance by remember { mutableStateOf(true) }
     Scaffold(
         modifier = modifier
     ) { innerPadding ->
@@ -478,6 +486,7 @@ fun Onboarding(
                 }
                 1 -> {
                     OnboardingTwo(
+                        { canAdvance = it },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -507,11 +516,15 @@ fun Onboarding(
                 }
                 TextButton(
                     {
-                        step++
+                        if (step < maxSteps) {
+                            step++
+                        } else {
+                            exit()
+                        }
                     },
                     modifier = Modifier
                         .weight(1f),
-                    enabled = step < maxSteps
+                    enabled = canAdvance
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
@@ -554,6 +567,7 @@ fun OnboardingOne(modifier: Modifier = Modifier) {
 
 @Composable
 fun OnboardingTwo(
+    setAdvanceable: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -590,6 +604,10 @@ fun OnboardingTwo(
         mutableStateOf(
             Settings.canDrawOverlays(context)
         )
+    }
+
+    LaunchedEffect(hasContactsPermissions, hasSmsPermissions, hasDisplayOverOtherAppsPermissions) {
+        setAdvanceable(hasContactsPermissions && hasSmsPermissions && hasDisplayOverOtherAppsPermissions)
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -755,7 +773,7 @@ fun SendMessagePreview() {
 @Composable
 fun OnboardingPreview() {
     NightblastTheme {
-        Onboarding()
+        Onboarding({})
     }
 }
 
@@ -763,6 +781,6 @@ fun OnboardingPreview() {
 @Composable
 fun OnboardingTwoPreview() {
     NightblastTheme {
-        OnboardingTwo()
+        OnboardingTwo({})
     }
 }
