@@ -260,27 +260,6 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
         modifier = modifier.padding(12.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Button({
-            contactPickerOpen = true
-        }) {
-            Text(
-                "Select recipients"
-            )
-        }
-        TextField(
-            messageTextFieldState,
-            placeholder = {
-                Text(
-                    "Message"
-                )
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Text(
-            text = "${messageTextFieldState.text.length}/440 characters",
-            modifier = Modifier.align(Alignment.End)
-        )
-
         Text(
             text = "Priority level",
             style = MaterialTheme.typography.headlineSmall
@@ -316,6 +295,26 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                 }
             }
         }
+        Button({
+            contactPickerOpen = true
+        }) {
+            Text(
+                "Select recipients"
+            )
+        }
+        TextField(
+            messageTextFieldState,
+            placeholder = {
+                Text(
+                    "Message"
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            text = "${messageTextFieldState.text.length}/440 characters",
+            modifier = Modifier.align(Alignment.End)
+        )
         Button({
             val message = messageTextFieldState.text.trim().toString()
 
