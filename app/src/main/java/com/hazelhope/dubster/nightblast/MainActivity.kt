@@ -164,7 +164,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
     var contactsRefreshKey by remember { mutableIntStateOf(0) }
 
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(contactsRefreshKey) {
         contacts = fetchContacts(context)
     }
 
