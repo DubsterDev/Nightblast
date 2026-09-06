@@ -16,6 +16,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -109,18 +115,34 @@ class MainActivity : ComponentActivity() {
             NightblastTheme {
                 var showOnboarding by remember { mutableStateOf(!hasAllPermissions) }
 
-                if (!showOnboarding) {
-                    SendMessage(
-                        { phoneNumber, message, priority ->
-                            sendMessage(phoneNumber, message, priority)
-                        }
-                    )
-                } else {
-                    Onboarding(
-                        {
-                            showOnboarding = false
-                        }
-                    )
+                AnimatedContent(showOnboarding,
+                    transitionSpec = {
+                        // Slide in from left, slide out to left
+                        (fadeIn() + slideInHorizontally(
+                            animationSpec = tween(300),
+                            initialOffsetX = { fullWidth -> fullWidth })).togetherWith(
+                            fadeOut(
+                                animationSpec = tween(
+                                    150
+                                )
+                            )
+                        )
+                    }
+                ) { shouldShowOnboarding ->
+
+                    if (!shouldShowOnboarding) {
+                        SendMessage(
+                            { phoneNumber, message, priority ->
+                                sendMessage(phoneNumber, message, priority)
+                            }
+                        )
+                    } else {
+                        Onboarding(
+                            {
+                                showOnboarding = false
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -478,17 +500,36 @@ fun Onboarding(
                 .fillMaxSize()
                 .padding(12.dp)
         ) {
-            when (step) {
-                0 -> {
-                    OnboardingOne(
-                        modifier = Modifier.weight(1f)
+            AnimatedContent(step,
+                transitionSpec = {
+                    val direction = if (targetState > initialState) {
+                        1
+                    } else {
+                        -1
+                    }
+
+                    (fadeIn() + slideInHorizontally(
+                        animationSpec = tween(300),
+                        initialOffsetX = { fullWidth -> fullWidth * direction })).togetherWith(
+                        fadeOut(
+                            animationSpec = tween(
+                                150
+                            )
+                        )
                     )
-                }
-                1 -> {
-                    OnboardingTwo(
-                        { canAdvance = it },
-                        modifier = Modifier.weight(1f)
-                    )
+                },
+                modifier = Modifier.weight(1f)
+            ) { animatedStep ->
+                when (animatedStep) {
+                    0 -> {
+                        OnboardingOne()
+                    }
+
+                    1 -> {
+                        OnboardingTwo(
+                            { canAdvance = it }
+                        )
+                    }
                 }
             }
             Row(
@@ -499,6 +540,7 @@ fun Onboarding(
                 TextButton(
                     {
                         step--
+                        canAdvance = true
                     },
                     modifier = Modifier
                         .weight(1f),
