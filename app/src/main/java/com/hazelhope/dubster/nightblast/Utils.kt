@@ -178,7 +178,11 @@ suspend fun findContact(context: Context, phoneNumber: String): Contact? {
 fun normalizeNumber(context: Context, phoneNumber: String, format: PhoneNumberUtil.PhoneNumberFormat = PhoneNumberUtil.PhoneNumberFormat.E164): String? {
     val telephonyManager = context.getSystemService(TELEPHONY_SERVICE) as TelephonyManager
     val phoneNumberUtil = PhoneNumberUtil.getInstance()
-    val phoneNumberParsed = phoneNumberUtil.parse(phoneNumber, telephonyManager.simCountryIso.uppercase())
+    val phoneNumberParsed = try {
+        phoneNumberUtil.parse(phoneNumber, telephonyManager.simCountryIso.uppercase())
+    } catch (_: Exception) {
+        return null
+    }
 
     if (phoneNumberUtil.isValidNumber(phoneNumberParsed)) {
         val validPhoneNumber = phoneNumberUtil.format(
