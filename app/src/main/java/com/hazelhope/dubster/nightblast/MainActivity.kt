@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -451,6 +452,11 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                                 selectedContacts.forEach { phoneNumber ->
                                     sendMessage(phoneNumber, message, selectedPriority)
                                 }
+                                selectedContacts = emptyList()
+                                selectedPriority = 1
+                                messageTextFieldState.clearText()
+
+                                Toast.makeText(context, "Sending alert", Toast.LENGTH_SHORT).show()
                             } else {
                                 Toast.makeText(context, "Message is too long!", Toast.LENGTH_SHORT).show()
                             }
