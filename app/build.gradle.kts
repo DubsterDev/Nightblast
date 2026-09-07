@@ -40,6 +40,7 @@ android {
 dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.libphonenumber)
+    implementation(libs.coil.compose)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

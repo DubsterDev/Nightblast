@@ -72,10 +72,28 @@ suspend fun fetchContacts(context: Context): List<Contact> {
             val number = it.getString(it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER))
             val normalizedNumber = normalizeNumber(context, number)
 
+            val photoUri = context.contentResolver.query(
+                ContactsContract.Contacts.CONTENT_URI,
+                arrayOf(ContactsContract.Contacts.PHOTO_URI),
+                "${ContactsContract.Contacts._ID} = ?",
+                arrayOf(id),
+                null
+            )?.use { photoCursor ->
+                if (photoCursor.moveToFirst()) {
+                    photoCursor.getString(
+                        photoCursor.getColumnIndexOrThrow(
+                            ContactsContract.Contacts.PHOTO_URI
+                        )
+                    )
+                } else {
+                    null
+                }
+            }
+
             if (normalizedNumber != null) {
                 val hasKey = hasPublicKey(context, normalizedNumber)
                 contacts.add(
-                    Contact(id, name, normalizedNumber, hasKey)
+                    Contact(id, name, normalizedNumber, hasKey, photoUri)
                 )
             }
         }
@@ -111,20 +129,43 @@ suspend fun findContact(context: Context, phoneNumber: String): Contact? {
                 )
             ) ?: return null
 
+
             val hasKey = hasPublicKey(context, number)
-            return Contact(
-                id = cursor.getString(
-                    cursor.getColumnIndexOrThrow(
-                        ContactsContract.PhoneLookup.CONTACT_ID
+
+            val contactId = cursor.getString(
+                cursor.getColumnIndexOrThrow(
+                    ContactsContract.PhoneLookup.CONTACT_ID
+                )
+            )
+
+            val photoUri = context.contentResolver.query(
+                ContactsContract.Contacts.CONTENT_URI,
+                arrayOf(ContactsContract.Contacts.PHOTO_URI),
+                "${ContactsContract.Contacts._ID} = ?",
+                arrayOf(contactId),
+                null
+            )?.use { photoCursor ->
+                if (photoCursor.moveToFirst()) {
+                    photoCursor.getString(
+                        photoCursor.getColumnIndexOrThrow(
+                            ContactsContract.Contacts.PHOTO_URI
+                        )
                     )
-                ),
+                } else {
+                    null
+                }
+            }
+
+            return Contact(
+                id = contactId,
                 name = cursor.getString(
                     cursor.getColumnIndexOrThrow(
                         ContactsContract.PhoneLookup.DISPLAY_NAME
                     )
                 ),
                 number = number,
-                hasPublicKey = hasKey
+                hasPublicKey = hasKey,
+                photo = photoUri
             )
         }
     }
@@ -166,5 +207,6 @@ data class Contact(
     val id: String,
     val name: String,
     val number: String,
-    val hasPublicKey: Boolean
+    val hasPublicKey: Boolean,
+    val photo: String?
 )
