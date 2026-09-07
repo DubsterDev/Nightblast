@@ -255,6 +255,12 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
         contacts = fetchContacts(context)
     }
 
+    LaunchedEffect(Unit) {
+        ReloadBus.reload.collect {
+            contacts = fetchContacts(context)
+        }
+    }
+
     if (connectDialogOpen) {
         InviteContactsDialog(contacts, {connectDialogOpen = false})
     }
@@ -473,9 +479,9 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                modifier = modifier.verticalScroll(rememberScrollState())
             ) {
-                contacts.filter { !it.hasPublicKey }.sortedBy { it.name }.forEach { contact ->
+                contacts.sortedBy { it.name }.forEach { contact ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -510,20 +516,37 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                             }
 
                             val scale by animateFloatAsState(
-                                targetValue = if (attemptingToConnect.contains(contact.number)) 1f else 0f,
+                                targetValue = if (attemptingToConnect.contains(contact.number) || contact.hasPublicKey) 1f else 0f,
                                 animationSpec = tween(100)
                             )
 
-                            ContainedLoadingIndicator(
-                                modifier = Modifier
-                                    .size(49.dp)
-                                    .graphicsLayer {
-                                        scaleX = scale
-                                        scaleY = scale
-                                        transformOrigin = TransformOrigin.Center
-                                    }
-                                    .clip(CircleShape)
-                            )
+                            if (contact.hasPublicKey) {
+                                Icon(
+                                    painterResource(R.drawable.outline_check),
+                                    contentDescription =  null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .graphicsLayer {
+                                            scaleX = scale
+                                            scaleY = scale
+                                            transformOrigin = TransformOrigin.Center
+                                        }
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                )
+                            } else {
+                                ContainedLoadingIndicator(
+                                    modifier = Modifier
+                                        .size(49.dp)
+                                        .graphicsLayer {
+                                            scaleX = scale
+                                            scaleY = scale
+                                            transformOrigin = TransformOrigin.Center
+                                        }
+                                        .clip(CircleShape)
+                                )
+                            }
                         }
                         Text(
                             text = contact.name

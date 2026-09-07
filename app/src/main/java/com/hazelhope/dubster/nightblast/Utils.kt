@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.i18n.phonenumbers.PhoneNumberUtil
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import java.security.KeyFactory
 import java.security.KeyStore
@@ -210,3 +211,9 @@ data class Contact(
     val hasPublicKey: Boolean,
     val photo: String?
 )
+
+object ReloadBus {
+    val reload = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1
+    )
+}

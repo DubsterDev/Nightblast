@@ -45,6 +45,7 @@ class SMSReceiver : BroadcastReceiver() {
                     CoroutineScope(Dispatchers.IO).launch {
                         setPublicKey(context, sender, pubKey)
                     }
+                    ReloadBus.reload.tryEmit(Unit)
                 } else if (command.startsWith("MSG:") && sender != null) {
                     val encryptedPayload = command.replace("MSG:", "").split("@")
                     val encryptedMessage = encryptedPayload[0]
