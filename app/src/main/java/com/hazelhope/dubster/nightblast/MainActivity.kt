@@ -403,7 +403,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                 ) {
                     toggleableItem(
                         checked = selectedPriority == 0,
-                        label = "Vibrations",
+                        label = "Just vibrations",
                         onCheckedChange = {
                             selectedPriority = 0
                         }
