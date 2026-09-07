@@ -451,6 +451,8 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                                 selectedContacts.forEach { phoneNumber ->
                                     sendMessage(phoneNumber, message, selectedPriority)
                                 }
+                            } else {
+                                Toast.makeText(context, "Message is too long!", Toast.LENGTH_SHORT).show()
                             }
                         }) {
                             Icon(
