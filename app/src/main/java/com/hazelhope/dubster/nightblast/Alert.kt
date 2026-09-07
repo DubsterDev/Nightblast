@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -224,10 +225,12 @@ fun Popup(
                         )
                     }
                 }
-                Text(
-                    text = text,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                SelectionContainer {
+                    Text(
+                        text = text,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
                 Text(
                     text = "Sent by $senderName",
                     color = Color.DarkGray,
