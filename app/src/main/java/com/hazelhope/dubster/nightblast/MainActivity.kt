@@ -249,13 +249,6 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
 
     var connectDialogOpen by remember { mutableStateOf(false) }
 
-    var contactsRefreshKey by remember { mutableIntStateOf(0) }
-
-
-    LaunchedEffect(contactsRefreshKey) {
-        contacts = fetchContacts(context)
-    }
-
     LaunchedEffect(Unit) {
         ReloadBus.reload.collect {
             contacts = fetchContacts(context)
@@ -285,14 +278,6 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                     }
                 },
                 actions = {
-                    IconButton({
-                        contactsRefreshKey++
-                    }) {
-                        Icon(
-                            painterResource(R.drawable.outline_refresh),
-                            contentDescription = "Refresh contacts"
-                        )
-                    }
                     IconButton({
                         connectDialogOpen = true
                     }) {
