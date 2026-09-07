@@ -37,6 +37,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -250,9 +252,9 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
     var connectDialogOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        contacts = fetchContacts(context)
+        contacts = fetchContacts(context).sortedBy { it.name }
         ReloadBus.reload.collect {
-            contacts = fetchContacts(context)
+            contacts = fetchContacts(context).sortedBy { it.name }
         }
     }
 
@@ -506,11 +508,14 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
             Text(text = "Tap to connect")
         },
         text = {
-            Column(
+            LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = modifier.verticalScroll(rememberScrollState())
+                modifier = modifier
             ) {
-                contacts.sortedBy { it.name }.forEach { contact ->
+                items(
+                    items = contacts,
+                    key = { it.number }
+                ) { contact ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
