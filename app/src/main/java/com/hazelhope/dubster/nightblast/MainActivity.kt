@@ -712,7 +712,7 @@ fun OnboardingOne(modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Maybe I should write a short summary about how it works. :D",
+            text = "Send urgent alerts to your contacts using encrypted SMS messages",
             textAlign = TextAlign.Center
         )
     }
