@@ -512,10 +512,7 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = modifier
             ) {
-                items(
-                    items = contacts,
-                    key = { it.number }
-                ) { contact ->
+                items(contacts) { contact ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
