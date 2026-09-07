@@ -392,7 +392,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                     }
                 }
 
-                var selectedPriority by remember { mutableIntStateOf(0) }
+                var selectedPriority by remember { mutableIntStateOf(1) }
                 ButtonGroup(
                     overflowIndicator = { menuState ->
                         ButtonGroupDefaults.OverflowIndicator(
