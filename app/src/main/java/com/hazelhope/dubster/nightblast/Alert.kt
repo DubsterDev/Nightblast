@@ -11,13 +11,21 @@ import android.os.VibratorManager
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,10 +33,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +60,7 @@ class Alert : ComponentActivity() {
             setTurnScreenOn(true)
             getSystemService(KeyguardManager::class.java).requestDismissKeyguard(this, null)
         } else {
+            @Suppress("DEPRECATION")
             window.addFlags(
                 WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
                         or WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
@@ -115,6 +127,7 @@ class Alert : ComponentActivity() {
         }
 
         setContent {
+            var isPlaying by remember { mutableStateOf(true) }
             NightblastTheme {
                 Box(
                     modifier = Modifier.fillMaxSize()
@@ -124,6 +137,16 @@ class Alert : ComponentActivity() {
                         sender = sender,
                         onClose = {
                             finish()
+                        },
+                        isPlaying,
+                        {
+                            mediaPlayer.stop()
+                            mediaPlayer.release()
+                            mediaPlayer = MediaPlayer()
+                            vibrator?.let {
+                                vibrator!!.cancel()
+                            }
+                            isPlaying = false
                         }
                     )
                 }
@@ -133,7 +156,9 @@ class Alert : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        mediaPlayer.stop()
+        if (mediaPlayer.isPlaying) {
+            mediaPlayer.stop()
+        }
         mediaPlayer.release()
         vibrator?.let {
             vibrator!!.cancel()
@@ -143,7 +168,14 @@ class Alert : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Popup(text: String, sender: String, onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun Popup(
+    text: String,
+    sender: String,
+    onClose: () -> Unit,
+    isPlaying: Boolean,
+    silenceAlert: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     var senderName by remember { mutableStateOf(sender) }
 
     val context = LocalContext.current
@@ -157,27 +189,77 @@ fun Popup(text: String, sender: String, onClose: () -> Unit, modifier: Modifier 
 
     AlertDialog(
         onDismissRequest = { onClose() },
-        confirmButton = {
-             Button(
-                 {onClose()}
-             ) {
-                 Text("Close")
-             }
-        },
+        confirmButton = {},
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = modifier
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Image(
+                            painterResource(R.drawable.nightblast_logo),
+                            contentDescription = "Nightblast logo",
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Text(
+                            text = "Nightblast",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    IconButton(
+                        { onClose() }
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.outline_close),
+                            contentDescription = "Close"
+                        )
+                    }
+                }
                 Text(
-                    text = text
+                    text = text,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Sent by $senderName using Nightblast",
+                    text = "Sent by $senderName",
                     color = Color.DarkGray,
                     fontStyle = FontStyle.Italic
                 )
+                AnimatedVisibility(isPlaying) {
+                    Button(
+                        {
+                            silenceAlert()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Silence alert"
+                        )
+                    }
+                }
             }
         }
     )
+}
+
+@Preview(widthDp = 300, heightDp = 600, showBackground = true)
+@Composable
+fun PopupPreview() {
+    NightblastTheme {
+        Popup(
+            "The neighbors are trying to eat all my hot dogs!",
+            "+15555555555",
+            {},
+            true,
+            {}
+        )
+    }
 }
