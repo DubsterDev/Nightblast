@@ -250,6 +250,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
     var connectDialogOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        contacts = fetchContacts(context)
         ReloadBus.reload.collect {
             contacts = fetchContacts(context)
         }
