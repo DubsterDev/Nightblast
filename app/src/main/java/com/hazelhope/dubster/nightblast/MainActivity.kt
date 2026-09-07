@@ -306,7 +306,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Recipients",
+                    text = "Choose recipients",
                     style = MaterialTheme.typography.headlineSmall
                 )
                 if (contacts.none { it.hasPublicKey }) {
