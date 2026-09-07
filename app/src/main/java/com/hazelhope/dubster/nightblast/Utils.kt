@@ -94,7 +94,7 @@ suspend fun fetchContacts(context: Context): List<Contact> {
             if (normalizedNumber != null) {
                 val hasKey = hasPublicKey(context, normalizedNumber)
                 contacts.add(
-                    Contact(id, name, normalizedNumber, hasKey, photoUri)
+                    Contact(id, name, normalizedNumber, hasKey, photoUri, normalizeNumber(context, normalizedNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL) ?: number)
                 )
             }
         }
@@ -166,7 +166,8 @@ suspend fun findContact(context: Context, phoneNumber: String): Contact? {
                 ),
                 number = number,
                 hasPublicKey = hasKey,
-                photo = photoUri
+                photo = photoUri,
+                nationalNumber = normalizeNumber(context, number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL) ?: number
             )
         }
     }
@@ -209,7 +210,8 @@ data class Contact(
     val name: String,
     val number: String,
     val hasPublicKey: Boolean,
-    val photo: String?
+    val photo: String?,
+    val nationalNumber: String,
 )
 
 object ReloadBus {

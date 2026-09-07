@@ -86,7 +86,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil3.compose.AsyncImage
-import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -399,9 +398,17 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                                         .background(MaterialTheme.colorScheme.primary)
                                 )
                             }
-                            Text(
-                                text = contact.name
-                            )
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = contact.name,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = contact.nationalNumber
+                                )
+                            }
                         }
                     }
                 }
@@ -584,7 +591,6 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                             }
                         }
 
-                        val nationalNumber = remember { normalizeNumber(context, contact.number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL) }
                         Column(
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
@@ -593,7 +599,7 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = nationalNumber ?: contact.number
+                                text = contact.nationalNumber
                             )
                         }
                     }
