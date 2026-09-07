@@ -70,6 +70,9 @@ class Alert : ComponentActivity() {
             )
         }
 
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+
         val message = intent.getStringExtra("MESSAGE") ?: "Oops"
         val sender = intent.getStringExtra("SENDER") ?: "Oops"
         val priority = intent.getIntExtra("PRIORITY", 0)
