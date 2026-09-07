@@ -2,9 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.SEND_SMS" />
-    <uses-permission android:name="android.permission.READ_SMS" />
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="true"
+        tools:ignore="UnnecessaryRequiredFeature" />
+
+    <uses-permission android:name="android.permission.SEND_SMS"
+        tools:ignore="SmsAndCallLogPolicy" />
+    <uses-permission android:name="android.permission.READ_SMS"
+        tools:ignore="SmsAndCallLogPolicy" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS"
+        tools:ignore="SmsAndCallLogPolicy" />
 
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
