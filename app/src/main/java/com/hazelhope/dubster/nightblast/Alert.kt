@@ -1,8 +1,13 @@
 package com.hazelhope.dubster.nightblast
 
 import android.app.KeyguardManager
+import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -30,7 +35,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+
 class Alert : ComponentActivity() {
+    var mediaPlayer = MediaPlayer()
+    var vibrator: Vibrator? = null
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -49,6 +59,60 @@ class Alert : ComponentActivity() {
 
         val message = intent.getStringExtra("MESSAGE") ?: "Oops"
         val sender = intent.getStringExtra("SENDER") ?: "Oops"
+        val priority = intent.getIntExtra("PRIORITY", 0)
+
+        if (priority != 0) {
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.stop()
+                mediaPlayer.release()
+                mediaPlayer = MediaPlayer()
+            }
+
+            val audioFiles = arrayOf("music/andromeda.mp3")
+
+            if (priority - 1 < audioFiles.size) {
+                val descriptor = assets.openFd(audioFiles[priority - 1])
+                mediaPlayer.setDataSource(
+                    descriptor.fileDescriptor,
+                    descriptor.startOffset,
+                    descriptor.length
+                )
+                descriptor.close()
+
+
+                mediaPlayer.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+
+                mediaPlayer.prepare()
+                mediaPlayer.setVolume(1f, 1f)
+                mediaPlayer.playbackParams
+                mediaPlayer.isLooping = true
+                mediaPlayer.start()
+            }
+        }
+
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            getSystemService(VibratorManager::class.java)
+                ?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(VIBRATOR_SERVICE) as? Vibrator
+        }
+
+        vibrator?.let {
+            val pattern = longArrayOf(0, 300, 150, 150, 500, 150, 150, 150, 500, 300, 150, 300, 150, 150, 500, 150, 150, 150, 150, 150, 150, 150, 500, 300, 500, 300, 150, 150, 150, 150, 150, 150, 500, 150, 150, 300, 150, 150, 150, 150, 500, 150, 150, 300, 500, 150, 150, 150, 150, 150, 500, 300, 1000)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val effect = VibrationEffect.createWaveform(pattern, 0)
+                vibrator!!.vibrate(effect)
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator!!.vibrate(pattern, 0)
+            }
+        }
 
         setContent {
             NightblastTheme {
@@ -64,6 +128,15 @@ class Alert : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer.stop()
+        mediaPlayer.release()
+        vibrator?.let {
+            vibrator!!.cancel()
         }
     }
 }

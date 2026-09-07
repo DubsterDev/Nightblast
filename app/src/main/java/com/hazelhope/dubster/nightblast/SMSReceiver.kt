@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
-import android.telephony.SmsManager
 import android.util.Base64
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
@@ -65,8 +64,9 @@ class SMSReceiver : BroadcastReceiver() {
 
                     val activityIntent = Intent(context, Alert::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        putExtra("MESSAGE", "priority: $priority\n${decryptedBytes.decodeToString()}")
+                        putExtra("MESSAGE", decryptedBytes.decodeToString())
                         putExtra("SENDER", sender)
+                        putExtra("PRIORITY", priority)
                     }
                     context.startActivity(activityIntent)
                 }
