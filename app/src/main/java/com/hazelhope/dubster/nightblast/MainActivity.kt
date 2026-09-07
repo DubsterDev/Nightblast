@@ -361,9 +361,22 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                                             .clip(CircleShape)
                                     )
                                 } else {
-                                    Text(
-                                        text = contact.name.substring(0, 1)
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.secondaryContainer)
+                                    ) {
+                                        Icon(
+                                            painterResource(R.drawable.outline_person),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                        )
+                                    }
                                 }
 
                                 val scale by animateFloatAsState(
@@ -519,9 +532,22 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                                         .clip(CircleShape)
                                 )
                             } else {
-                                Text(
-                                    text = contact.name.substring(0, 1)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.outline_person),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                    )
+                                }
                             }
 
                             val scale by animateFloatAsState(
