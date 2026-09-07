@@ -174,7 +174,7 @@ suspend fun findContact(context: Context, phoneNumber: String): Contact? {
     return null
 }
 
-fun normalizeNumber(context: Context, phoneNumber: String): String? {
+fun normalizeNumber(context: Context, phoneNumber: String, format: PhoneNumberUtil.PhoneNumberFormat = PhoneNumberUtil.PhoneNumberFormat.E164): String? {
     val telephonyManager = context.getSystemService(TELEPHONY_SERVICE) as TelephonyManager
     val phoneNumberUtil = PhoneNumberUtil.getInstance()
     val phoneNumberParsed = phoneNumberUtil.parse(phoneNumber, telephonyManager.simCountryIso.uppercase())
@@ -182,7 +182,7 @@ fun normalizeNumber(context: Context, phoneNumber: String): String? {
     if (phoneNumberUtil.isValidNumber(phoneNumberParsed)) {
         val validPhoneNumber = phoneNumberUtil.format(
             phoneNumberParsed,
-            PhoneNumberUtil.PhoneNumberFormat.E164
+            format
         )
         return validPhoneNumber
     }

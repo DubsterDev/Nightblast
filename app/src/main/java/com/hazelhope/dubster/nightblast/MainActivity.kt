@@ -85,6 +85,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil3.compose.AsyncImage
+import com.google.i18n.phonenumbers.PhoneNumberUtil
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -548,9 +549,19 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                                 )
                             }
                         }
-                        Text(
-                            text = contact.name
-                        )
+
+                        val nationalNumber = remember { normalizeNumber(context, contact.number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL) }
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = contact.name,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = nationalNumber ?: contact.number
+                            )
+                        }
                     }
                 }
             }
