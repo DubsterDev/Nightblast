@@ -75,7 +75,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -324,7 +323,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                         .weight(1f)
                         .fillMaxWidth()
                 ) {
-                    contacts.filter { it.hasPublicKey }.forEach { contact ->
+                    contacts.filter { it.hasPublicKey }.sortedBy { it.name }.forEach { contact ->
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -460,6 +459,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     var attemptingToConnect by remember { mutableStateOf(listOf<String>()) }
@@ -475,9 +475,10 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
-                contacts.filter { !it.hasPublicKey }.forEach { contact ->
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                contacts.filter { !it.hasPublicKey }.sortedBy { it.name }.forEach { contact ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
@@ -493,14 +494,39 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                             }
                             .padding(12.dp)
                     ) {
+                        Box {
+                            if (contact.photo != null) {
+                                AsyncImage(
+                                    model = contact.photo,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape)
+                                )
+                            } else {
+                                Text(
+                                    text = contact.name.substring(0, 1)
+                                )
+                            }
+
+                            val scale by animateFloatAsState(
+                                targetValue = if (attemptingToConnect.contains(contact.number)) 1f else 0f,
+                                animationSpec = tween(100)
+                            )
+
+                            ContainedLoadingIndicator(
+                                modifier = Modifier
+                                    .size(49.dp)
+                                    .graphicsLayer {
+                                        scaleX = scale
+                                        scaleY = scale
+                                        transformOrigin = TransformOrigin.Center
+                                    }
+                                    .clip(CircleShape)
+                            )
+                        }
                         Text(
                             text = contact.name
-                        )
-                        Text(
-                            text = if (attemptingToConnect.contains(contact.number)) {
-                                "Attempting to connect. Status will not update in real time"
-                            } else "Tap to send connection message",
-                            fontStyle = FontStyle.Italic
                         )
                     }
                 }
