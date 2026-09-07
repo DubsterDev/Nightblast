@@ -308,6 +308,20 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                     text = "Recipients",
                     style = MaterialTheme.typography.headlineSmall
                 )
+                if (contacts.none { it.hasPublicKey }) {
+                    Text(
+                        text = "You haven't connected with anyone yet."
+                    )
+                    Button(
+                        {
+                            connectDialogOpen = true
+                        }
+                    ) {
+                        Text(
+                            text = "Add contacts"
+                        )
+                    }
+                }
                 Column(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                     modifier = Modifier
