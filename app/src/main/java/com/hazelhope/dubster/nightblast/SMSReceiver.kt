@@ -37,7 +37,7 @@ class SMSReceiver : BroadcastReceiver() {
                 val privateKey = (entry as KeyStore.PrivateKeyEntry).privateKey
 
                 val command = body.replace("NIGHTBLAST:", "")
-                if (command == "GETPUBLICKEY" && sender != null) {
+                if (command.split("\n")[0] == "CONNECT" && sender != null) {
                     sendPublicKey(context, sender)
                 } else if (command.startsWith("RECVPUBKEY:") && sender != null) {
                     val pubKey = command.replace("RECVPUBKEY:", "")

@@ -493,7 +493,7 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                                 sms.sendTextMessage(
                                     contact.number,
                                     null,
-                                    "NIGHTBLAST:GETPUBLICKEY",
+                                    "NIGHTBLAST:CONNECT\nHello! You can send me urgent alerts using the Nightblast app: https://f-droid.org/en/packages/com.hazelhope.dubster.nightblast/",
                                     null,
                                     null
                                 )
