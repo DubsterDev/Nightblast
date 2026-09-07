@@ -189,7 +189,7 @@ fun Popup(
     }
 
     AlertDialog(
-        onDismissRequest = { onClose() },
+        onDismissRequest = {},
         confirmButton = {},
         text = {
             Column(
