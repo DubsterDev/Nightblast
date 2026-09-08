@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -210,11 +211,11 @@ fun Popup(
                     ) {
                         Image(
                             painterResource(R.drawable.nightblast_logo),
-                            contentDescription = "Nightblast logo",
+                            contentDescription = stringResource(R.string.nightblast_logo_content_description),
                             modifier = Modifier.size(36.dp)
                         )
                         Text(
-                            text = "Nightblast",
+                            text = stringResource(R.string.app_name),
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -235,7 +236,7 @@ fun Popup(
                     )
                 }
                 Text(
-                    text = "Sent by $senderName",
+                    text = stringResource(R.string.alert_box_sent_by, senderName),
                     color = Color.DarkGray,
                     fontStyle = FontStyle.Italic
                 )
@@ -247,7 +248,7 @@ fun Popup(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Silence alert"
+                            text = stringResource(R.string.alert_silence_alert_button_text)
                         )
                     }
                 }

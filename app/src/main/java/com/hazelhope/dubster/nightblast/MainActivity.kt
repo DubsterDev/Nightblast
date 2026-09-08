@@ -76,7 +76,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -245,6 +247,8 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
     val messageTextFieldState = rememberTextFieldState()
 
     val context = LocalContext.current
+    
+    val localResources = LocalResources.current
 
     var contacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
     var selectedContacts by remember { mutableStateOf(listOf<String>()) }
@@ -276,7 +280,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                             modifier = Modifier.size(36.dp)
                         )
                         Text(
-                            text = "Nightblast"
+                            text = stringResource(R.string.app_name)
                         )
                     }
                 },
@@ -286,7 +290,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                     }) {
                         Icon(
                             painterResource(R.drawable.outline_person_add),
-                            contentDescription = "Add contacts"
+                            contentDescription = stringResource(R.string.button_add_contacts)
                         )
                     }
                 }
@@ -308,12 +312,12 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Choose recipients",
+                    text = stringResource(R.string.choose_recipients),
                     style = MaterialTheme.typography.headlineSmall
                 )
                 if (contacts.none { it.hasPublicKey }) {
                     Text(
-                        text = "You haven't connected with anyone yet."
+                        text = stringResource(R.string.no_connections_yet)
                     )
                     Button(
                         {
@@ -321,7 +325,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                         }
                     ) {
                         Text(
-                            text = "Add contacts"
+                            text = stringResource(R.string.button_add_contacts)
                         )
                     }
                 }
@@ -426,7 +430,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                 ) {
                     toggleableItem(
                         checked = selectedPriority == 0,
-                        label = "Just vibrations",
+                        label = localResources.getString(R.string.priority_just_vibrations),
                         onCheckedChange = {
                             selectedPriority = 0
                         }
@@ -434,7 +438,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
 
                     toggleableItem(
                         checked = selectedPriority == 1,
-                        label = "Vibrations and sound",
+                        label = localResources.getString(R.string.priority_vibrations_and_sound),
                         onCheckedChange = {
                             selectedPriority = 1
                         }
@@ -449,7 +453,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                         messageTextFieldState,
                         placeholder = {
                             Text(
-                                "Message"
+                                stringResource(R.string.text_field_message_placeholder)
                             )
                         },
                         modifier = Modifier
@@ -478,14 +482,16 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                                 selectedPriority = 1
                                 messageTextFieldState.clearText()
 
-                                Toast.makeText(context, "Sending alert", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context,
+                                    localResources.getString(R.string.toast_sending_alert), Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(context, "Message is too long!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context,
+                                    localResources.getString(R.string.toast_message_is_too_long), Toast.LENGTH_SHORT).show()
                             }
                         }) {
                             Icon(
                                 painterResource(R.drawable.outline_send),
-                                contentDescription = "Send message"
+                                contentDescription = stringResource(R.string.send_button_content_description)
                             )
                         }
                     }
@@ -502,10 +508,11 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
     var attemptingToConnect by remember { mutableStateOf(listOf<String>()) }
 
     val context = LocalContext.current
+    val localResources = LocalResources.current
     val sms = remember { context.getSystemService(SmsManager::class.java) }
     AlertDialog(
         title = {
-            Text(text = "Tap to connect")
+            Text(text = stringResource(R.string.choose_contacts_to_connect_to_dialog_header))
         },
         text = {
             LazyColumn(
@@ -523,7 +530,10 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                                 sms.sendTextMessage(
                                     contact.number,
                                     null,
-                                    "NIGHTBLAST:CONNECT\nHello! You can send me urgent alerts using the Nightblast app: https://f-droid.org/en/packages/com.hazelhope.dubster.nightblast/",
+                                    localResources.getString(
+                                        R.string.connect_sms_message,
+                                        "NIGHTBLAST:CONNECT"
+                                    ),
                                     null,
                                     null
                                 )
@@ -617,7 +627,7 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                     onDismiss()
                 }
             ) {
-                Text("Close")
+                Text(stringResource(R.string.close_button_text))
             }
         }
     )
@@ -738,6 +748,8 @@ fun Onboarding(
 
 @Composable
 fun OnboardingOne(modifier: Modifier = Modifier) {
+    val localResources = LocalResources.current
+
     Column(
         verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -745,16 +757,16 @@ fun OnboardingOne(modifier: Modifier = Modifier) {
     ) {
         Image(
             painterResource(R.drawable.nightblast_logo),
-            contentDescription = "Nightblast logo",
+            contentDescription = localResources.getString(R.string.nightblast_logo_content_description),
             modifier = Modifier.size(128.dp)
         )
         Text(
-            text = "Welcome to Nightblast",
+            text = stringResource(R.string.onboarding_welcome_to_nightblast),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Send urgent alerts to your contacts using encrypted SMS messages",
+            text = stringResource(R.string.onboarding_short_summary),
             textAlign = TextAlign.Center
         )
     }
@@ -841,12 +853,12 @@ fun OnboardingTwo(
         modifier = modifier.verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = "Permissions",
+            text = stringResource(R.string.onboarding_permissions_heading),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Nightblast requires a few permissions to function properly.",
+            text = stringResource(R.string.onboarding_permissions_short_summary),
             textAlign = TextAlign.Center
         )
         Card(
@@ -859,13 +871,13 @@ fun OnboardingTwo(
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "Contacts",
+                    text = stringResource(R.string.onboarding_permissions_contacts),
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Left,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Nightblast uses your contacts to allow you to connect with other Nightblast users and send blasts to people in your contacts."
+                    text = stringResource(R.string.onboarding_permissions_contacts_summary)
                 )
                 Button(
                     {
@@ -875,8 +887,8 @@ fun OnboardingTwo(
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text(
-                        if (hasContactsPermissions) "Granted"
-                        else "Grant"
+                        if (hasContactsPermissions) stringResource(R.string.granted_text)
+                        else stringResource(R.string.grant_text)
                     )
                 }
             }
@@ -891,13 +903,13 @@ fun OnboardingTwo(
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "Send and Receive SMS",
+                    text = stringResource(R.string.onboarding_permissions_sms),
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Left,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Nightblast uses SMS to send and receive blasts, instead of using a internet-based service."
+                    text = stringResource(R.string.onboarding_permissions_sms_summary)
                 )
                 Button(
                     {
@@ -907,8 +919,8 @@ fun OnboardingTwo(
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text(
-                        if (hasSmsPermissions) "Granted"
-                        else "Grant"
+                        if (hasSmsPermissions) stringResource(R.string.granted_text)
+                        else stringResource(R.string.grant_text)
                     )
                 }
             }
@@ -923,13 +935,13 @@ fun OnboardingTwo(
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "Display over other apps",
+                    text = stringResource(R.string.onboarding_permissions_display_over_other_apps),
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Left,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "When you receive a blast from someone else, you probably want to see it right away. Nightblast uses the display over other apps to open the dialog box over anything you're currently using."
+                    text = stringResource(R.string.onboarding_permissions_display_over_other_apps_summary)
                 )
                 Button(
                     {
@@ -947,8 +959,8 @@ fun OnboardingTwo(
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text(
-                        if (hasDisplayOverOtherAppsPermissions) "Granted"
-                        else "Grant"
+                        if (hasDisplayOverOtherAppsPermissions) stringResource(R.string.granted_text)
+                        else stringResource(R.string.grant_text)
                     )
                 }
             }
@@ -981,12 +993,12 @@ fun OnboardingGenerateKey(
             modifier = Modifier.size(96.dp)
         )
         Text(
-            text = "Generating encryption key",
+            text = stringResource(R.string.generating_encryption_key_text),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Please wait a moment",
+            text = stringResource(R.string.please_wait_a_moment_text),
             textAlign = TextAlign.Center
         )
     }
@@ -1002,13 +1014,13 @@ fun OnboardingFour(
         modifier = modifier.fillMaxWidth()
     ) {
         Text(
-            text = "Everything is ready!",
+            text = stringResource(R.string.everything_is_ready_text),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Press next to continue, then add people by clicking the add people button in the top right corner",
-            textAlign = TextAlign.Center
+            text = stringResource(R.string.onboarding_sms_disclaimer),
+            textAlign = TextAlign.Left
         )
     }
 }
@@ -1042,5 +1054,13 @@ fun OnboardingTwoPreview() {
 fun OnboardingGenerateKeyPreview() {
     NightblastTheme {
         OnboardingGenerateKey({},  {}, {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun OnboardingFourPreview() {
+    NightblastTheme {
+        OnboardingFour()
     }
 }

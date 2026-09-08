@@ -1,4 +1,35 @@
 <resources>
     <string name="app_name">Nightblast</string>
     <string name="title_activity_alert">Alert</string>
+    <string name="alert_box_sent_by">Sent by %1$s</string>
+    <string name="nightblast_logo_content_description">Nightblast logo</string>
+    <string name="alert_silence_alert_button_text">Silence alert</string>
+    <string name="button_add_contacts">Add contacts</string>
+    <string name="choose_recipients">Choose recipients</string>
+    <string name="no_connections_yet">You haven\'t connected with anyone yet.</string>
+    <string name="priority_just_vibrations">Just vibrations</string>
+    <string name="priority_vibrations_and_sound">Vibrations and sound</string>
+    <string name="text_field_message_placeholder">Message</string>
+    <string name="toast_sending_alert">Sending alert</string>
+    <string name="toast_message_is_too_long">Message is too long!</string>
+    <string name="send_button_content_description">Send message</string>
+    <string name="choose_contacts_to_connect_to_dialog_header">Choose contacts to connect to</string>
+    <string name="connect_sms_message">%1$s\nHello! You can send me urgent alerts using the Nightblast app: https://f-droid.org/en/packages/com.hazelhope.dubster.nightblast/</string>
+    <string name="close_button_text">Close</string>
+    <string name="onboarding_welcome_to_nightblast">Welcome to Nightblast</string>
+    <string name="onboarding_short_summary">Send urgent alerts to your contacts using encrypted SMS messages</string>
+    <string name="onboarding_permissions_heading">Permissions</string>
+    <string name="onboarding_permissions_short_summary">Nightblast requires a few permissions to function properly.</string>
+    <string name="onboarding_permissions_contacts">Contacts</string>
+    <string name="onboarding_permissions_contacts_summary">Nightblast uses your contacts to allow you to connect with other Nightblast users and send blasts to people in your contacts.</string>
+    <string name="granted_text">Granted</string>
+    <string name="grant_text">Grant</string>
+    <string name="onboarding_permissions_sms">Send and Receive SMS</string>
+    <string name="onboarding_permissions_sms_summary">Nightblast uses SMS to send and receive blasts, instead of using a internet-based service.</string>
+    <string name="onboarding_permissions_display_over_other_apps">Display over other apps</string>
+    <string name="onboarding_permissions_display_over_other_apps_summary">When you receive a blast from someone else, you probably want to see it right away. Nightblast uses the display over other apps to open the dialog box over anything you\'re currently using.</string>
+    <string name="generating_encryption_key_text">Generating encryption key</string>
+    <string name="please_wait_a_moment_text">Please wait a moment</string>
+    <string name="everything_is_ready_text">Everything is ready!</string>
+    <string name="onboarding_sms_disclaimer">Press next to continue to the app. Your carrier may charge for SMS messages used to send Nightblast connections and alerts.</string>
 </resources>
