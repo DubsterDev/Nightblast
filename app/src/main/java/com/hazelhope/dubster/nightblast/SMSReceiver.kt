@@ -15,6 +15,7 @@ import java.security.spec.MGF1ParameterSpec
 import javax.crypto.Cipher
 import javax.crypto.spec.OAEPParameterSpec
 import javax.crypto.spec.PSource
+import kotlin.time.Clock
 
 class SMSReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -55,6 +56,8 @@ class SMSReceiver : BroadcastReceiver() {
                         ReloadBus.reload.tryEmit(Unit)
                     }
                 } else if (command.startsWith("MSG:") && sender != null) {
+                    val alertHistoryDao = db.alertHistoryDao()
+
                     val encryptedPayload = command.replace("MSG:", "").split("@")
                     val encryptedMessage = encryptedPayload[0]
                     val priority = encryptedPayload[1].toInt()
@@ -70,10 +73,20 @@ class SMSReceiver : BroadcastReceiver() {
                     val encryptedBytes = Base64.decode(encryptedMessage, Base64.DEFAULT)
 
                     val decryptedBytes = cipher.doFinal(encryptedBytes)
+                    val decryptedMessage = decryptedBytes.decodeToString()
+
+                    CoroutineScope(Dispatchers.IO).launch {
+                        alertHistoryDao.insert(AlertHistory(
+                            phoneNumber = sender,
+                            priority = priority,
+                            message = decryptedMessage,
+                            time = Clock.System.now().epochSeconds
+                        ))
+                    }
 
                     val activityIntent = Intent(context, Alert::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        putExtra("MESSAGE", decryptedBytes.decodeToString())
+                        putExtra("MESSAGE", decryptedMessage)
                         putExtra("SENDER", sender)
                         putExtra("PRIORITY", priority)
                     }
