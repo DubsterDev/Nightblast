@@ -54,13 +54,18 @@ suspend fun setPublicKey(context: Context, phoneNumber: String, publicKey: Strin
 }
 
 suspend fun fetchContacts(context: Context): List<Contact> {
+    val preferences = context.dataStore.data.first()
+
+    val region = getRegion(context)
+
     val contentResolver = context.contentResolver
     val cursor = contentResolver.query(
         ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
         arrayOf(
             ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-            ContactsContract.CommonDataKinds.Phone.NUMBER
+            ContactsContract.CommonDataKinds.Phone.NUMBER,
+            ContactsContract.CommonDataKinds.Phone.PHOTO_URI
         ),
         null, null, null
     )
@@ -71,30 +76,15 @@ suspend fun fetchContacts(context: Context): List<Contact> {
             val id = it.getString(it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.CONTACT_ID))
             val name = it.getString(it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
             val number = it.getString(it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER))
-            val normalizedNumber = normalizeNumber(context, number)
+            val photoUri = it.getString(it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.PHOTO_URI))
+            val normalizedNumbers = normalizeNumber(region, number)
 
-            val photoUri = context.contentResolver.query(
-                ContactsContract.Contacts.CONTENT_URI,
-                arrayOf(ContactsContract.Contacts.PHOTO_URI),
-                "${ContactsContract.Contacts._ID} = ?",
-                arrayOf(id),
-                null
-            )?.use { photoCursor ->
-                if (photoCursor.moveToFirst()) {
-                    photoCursor.getString(
-                        photoCursor.getColumnIndexOrThrow(
-                            ContactsContract.Contacts.PHOTO_URI
-                        )
-                    )
-                } else {
-                    null
-                }
-            }
+            if (normalizedNumbers != null) {
+                val key = stringPreferencesKey(normalizedNumbers.internationalNumber)
+                val hasKey = preferences[key] != null
 
-            if (normalizedNumber != null) {
-                val hasKey = hasPublicKey(context, normalizedNumber)
                 contacts.add(
-                    Contact(id, name, normalizedNumber, hasKey, photoUri, normalizeNumber(context, normalizedNumber, PhoneNumberUtil.PhoneNumberFormat.NATIONAL) ?: number)
+                    Contact(id, name, normalizedNumbers.internationalNumber, hasKey, photoUri, normalizedNumbers.nationalNumber)
                 )
             }
         }
@@ -122,7 +112,7 @@ suspend fun findContact(context: Context, phoneNumber: String): Contact? {
     )?.use { cursor ->
 
         if (cursor.moveToFirst()) {
-            val number = normalizeNumber(context,
+            val numbers = normalizeNumber(getRegion(context),
                 cursor.getString(
                     cursor.getColumnIndexOrThrow(
                         ContactsContract.PhoneLookup.NUMBER
@@ -131,7 +121,7 @@ suspend fun findContact(context: Context, phoneNumber: String): Contact? {
             ) ?: return null
 
 
-            val hasKey = hasPublicKey(context, number)
+            val hasKey = hasPublicKey(context, numbers.internationalNumber)
 
             val contactId = cursor.getString(
                 cursor.getColumnIndexOrThrow(
@@ -164,10 +154,10 @@ suspend fun findContact(context: Context, phoneNumber: String): Contact? {
                         ContactsContract.PhoneLookup.DISPLAY_NAME
                     )
                 ),
-                number = number,
+                number = numbers.internationalNumber,
                 hasPublicKey = hasKey,
                 photo = photoUri,
-                nationalNumber = normalizeNumber(context, number, PhoneNumberUtil.PhoneNumberFormat.NATIONAL) ?: number
+                nationalNumber = numbers.nationalNumber
             )
         }
     }
@@ -175,21 +165,33 @@ suspend fun findContact(context: Context, phoneNumber: String): Contact? {
     return null
 }
 
-fun normalizeNumber(context: Context, phoneNumber: String, format: PhoneNumberUtil.PhoneNumberFormat = PhoneNumberUtil.PhoneNumberFormat.E164): String? {
+fun getRegion(context: Context): String {
     val telephonyManager = context.getSystemService(TELEPHONY_SERVICE) as TelephonyManager
+    return telephonyManager.simCountryIso.uppercase()
+}
+
+fun normalizeNumber(region: String, phoneNumber: String): TwoPhoneNumbers? {
     val phoneNumberUtil = PhoneNumberUtil.getInstance()
     val phoneNumberParsed = try {
-        phoneNumberUtil.parse(phoneNumber, telephonyManager.simCountryIso.uppercase())
+        phoneNumberUtil.parse(phoneNumber, region)
     } catch (_: Exception) {
         return null
     }
 
     if (phoneNumberUtil.isValidNumber(phoneNumberParsed)) {
-        val validPhoneNumber = phoneNumberUtil.format(
+        val internationalNumber = phoneNumberUtil.format(
             phoneNumberParsed,
-            format
+            PhoneNumberUtil.PhoneNumberFormat.E164
         )
-        return validPhoneNumber
+        val nationalNumber = phoneNumberUtil.format(
+            phoneNumberParsed,
+            PhoneNumberUtil.PhoneNumberFormat.NATIONAL
+        )
+
+        return TwoPhoneNumbers(
+            internationalNumber,
+            nationalNumber
+        )
     }
     return null
 }
@@ -216,6 +218,11 @@ data class Contact(
     val hasPublicKey: Boolean,
     val photo: String?,
     val nationalNumber: String,
+)
+
+data class TwoPhoneNumbers(
+    val internationalNumber: String,
+    val nationalNumber: String
 )
 
 object ReloadBus {
