@@ -209,6 +209,14 @@ data class TwoPhoneNumbers(
     val nationalNumber: String
 )
 
+data class AlertHistoryWithMoreData(
+    val id: Int,
+    val phoneNumber: String,
+    val contactName: String,
+    val priority: Int,
+    val message: String,
+    val time: String
+)
 object ReloadBus {
     val reload = MutableSharedFlow<Unit>(
         extraBufferCapacity = 1

@@ -32,4 +32,6 @@
     <string name="please_wait_a_moment_text">Please wait a moment</string>
     <string name="everything_is_ready_text">Everything is ready!</string>
     <string name="onboarding_sms_disclaimer">Press next to continue to the app. Your carrier may charge for SMS messages used to send Nightblast connections and alerts.</string>
+    <string name="button_view_history">View history</string>
+    <string name="history_dialog_title">History</string>
 </resources>

@@ -76,6 +76,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -99,6 +100,8 @@ import kotlinx.coroutines.withContext
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.spec.MGF1ParameterSpec
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Enumeration
 import javax.crypto.Cipher
 import javax.crypto.spec.OAEPParameterSpec
@@ -118,6 +121,8 @@ class MainActivity : ComponentActivity() {
         ).build()
 
         val keyDao = db.keyDao()
+
+        val alertHistoryDao = db.alertHistoryDao()
 
         val hasSendSms = ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
         val hasReadSms = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
@@ -154,7 +159,8 @@ class MainActivity : ComponentActivity() {
                             { phoneNumber, message, priority ->
                                 sendMessage(phoneNumber, message, priority, keyDao)
                             },
-                            keyDao
+                            keyDao,
+                            alertHistoryDao
                         )
                     } else {
                         Onboarding(
@@ -262,6 +268,7 @@ class MainActivity : ComponentActivity() {
 fun SendMessage(
     sendMessage: (phoneNumber: String, message: String, priority: Int) -> Unit,
     keyDao: KeyDao?,
+    alertHistoryDao: AlertHistoryDao?,
     modifier: Modifier = Modifier
 ) {
     val messageTextFieldState = rememberTextFieldState()
@@ -275,6 +282,7 @@ fun SendMessage(
     var selectedContacts by remember { mutableStateOf(listOf<String>()) }
 
     var connectDialogOpen by remember { mutableStateOf(false) }
+    var historyDialogOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (keyDao != null) {
@@ -288,6 +296,10 @@ fun SendMessage(
 
     if (connectDialogOpen) {
         InviteContactsDialog(contacts, {connectDialogOpen = false})
+    }
+
+    if (historyDialogOpen) {
+        HistoryDialog(contacts, alertHistoryDao, {historyDialogOpen = false})
     }
 
     Scaffold(
@@ -315,6 +327,14 @@ fun SendMessage(
                         Icon(
                             painterResource(R.drawable.outline_person_add),
                             contentDescription = stringResource(R.string.button_add_contacts)
+                        )
+                    }
+                    IconButton({
+                        historyDialogOpen = true
+                    }) {
+                        Icon(
+                            painterResource(R.drawable.outline_history),
+                            contentDescription = stringResource(R.string.button_view_history)
                         )
                     }
                 }
@@ -638,6 +658,88 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                                 text = contact.nationalNumber
                             )
                         }
+                    }
+                }
+            }
+        },
+        onDismissRequest = {
+            onDismiss()
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onDismiss()
+                }
+            ) {
+                Text(stringResource(R.string.close_button_text))
+            }
+        }
+    )
+}
+
+@Composable
+fun HistoryDialog(
+    contacts: List<Contact>,
+    historyDao: AlertHistoryDao?,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val formatter = SimpleDateFormat("MMMM d, yyyy h:mm a", LocalLocale.current.platformLocale)
+
+    var history by remember { mutableStateOf(emptyList<AlertHistoryWithMoreData>())}
+
+    LaunchedEffect(contacts, historyDao) {
+        withContext(Dispatchers.IO) {
+            val alertHistory = historyDao?.getAll() ?: return@withContext
+
+            val contactsMapped = contacts.associateBy { it.number }
+
+            history = alertHistory.map {
+                AlertHistoryWithMoreData(
+                    id = it.id,
+                    phoneNumber = it.phoneNumber,
+                    contactName = contactsMapped[it.phoneNumber]?.name ?: it.phoneNumber,
+                    priority = it.priority,
+                    message = it.message,
+                    time = formatter.format(Date(it.time * 1000))
+                )
+            }
+        }
+    }
+
+    val context = LocalContext.current
+
+    AlertDialog(
+        title = {
+            Text(text = stringResource(R.string.history_dialog_title))
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = modifier.fillMaxWidth()
+            ) {
+                history.forEach {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val activityIntent = Intent(context, Alert::class.java).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    putExtra("MESSAGE", it.message)
+                                    putExtra("SENDER", it.phoneNumber)
+                                    putExtra("PRIORITY", it.priority)
+                                }
+                                context.startActivity(activityIntent)
+                            }
+                    ) {
+                        Text(
+                            text = it.contactName,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = it.time
+                        )
                     }
                 }
             }
@@ -1053,7 +1155,7 @@ fun OnboardingFour(
 @Composable
 fun SendMessagePreview() {
     NightblastTheme {
-        SendMessage({ _, _, _ -> }, null)
+        SendMessage({ _, _, _ -> }, null, null)
     }
 }
 
