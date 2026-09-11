@@ -51,7 +51,7 @@ class SMSReceiver : BroadcastReceiver() {
                     val pubKey = command.replace("RECVPUBKEY:", "")
                     Log.d("TAG", "onReceive: pub key $pubKey from $sender")
                     CoroutineScope(Dispatchers.IO).launch {
-                        setPublicKey(context, keyDao, sender, pubKey)
+                        setPublicKey(keyDao, sender, pubKey)
                         ReloadBus.reload.tryEmit(Unit)
                     }
                 } else if (command.startsWith("MSG:") && sender != null) {

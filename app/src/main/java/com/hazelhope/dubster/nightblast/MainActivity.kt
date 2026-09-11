@@ -180,7 +180,7 @@ class MainActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             val sms = applicationContext.getSystemService(SmsManager::class.java)
 
-            val publicKey = getPublicKey(applicationContext, keyDao, phoneNumber)
+            val publicKey = getPublicKey(keyDao, phoneNumber)
 
             if (publicKey == null) {
                 Log.d("TAG", "sendMessage: No public key")

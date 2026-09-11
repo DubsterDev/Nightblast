@@ -15,7 +15,6 @@ import java.security.PublicKey
 import java.security.spec.X509EncodedKeySpec
 
 suspend fun getPublicKey(
-    context: Context,
     keyDao: KeyDao,
     phoneNumber: String
 ): PublicKey? {
@@ -27,8 +26,7 @@ suspend fun getPublicKey(
     return KeyFactory.getInstance("RSA").generatePublic(keySpec)
 }
 
-suspend fun setPublicKey(
-    context: Context,
+fun setPublicKey(
     keyDao: KeyDao,
     phoneNumber: String,
     publicKey: String
