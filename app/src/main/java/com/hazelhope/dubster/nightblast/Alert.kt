@@ -187,7 +187,7 @@ fun Popup(
 
     LaunchedEffect(sender) {
         CoroutineScope(Dispatchers.IO).launch {
-            val contact = findContact(context, sender)
+            val contact = findContact(context, sender, null)
             senderName = contact?.name ?: sender
         }
     }

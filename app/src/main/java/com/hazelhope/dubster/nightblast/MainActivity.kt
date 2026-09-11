@@ -89,6 +89,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.room.Room
 import coil3.compose.AsyncImage
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
@@ -109,6 +110,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val db = Room.databaseBuilder(
+            application,
+            NightblastDatabase::class.java,
+            "nightblast-db"
+        ).build()
+
+        val keyDao = db.keyDao()
 
         val hasSendSms = ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
         val hasReadSms = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
@@ -143,8 +152,9 @@ class MainActivity : ComponentActivity() {
                     if (!shouldShowOnboarding) {
                         SendMessage(
                             { phoneNumber, message, priority ->
-                                sendMessage(phoneNumber, message, priority)
-                            }
+                                sendMessage(phoneNumber, message, priority, keyDao)
+                            },
+                            keyDao
                         )
                     } else {
                         Onboarding(
@@ -161,11 +171,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun sendMessage(phoneNumber: String, message: String, priority: Int) {
+    fun sendMessage(
+        phoneNumber: String,
+        message: String,
+        priority: Int,
+        keyDao: KeyDao
+    ) {
         CoroutineScope(Dispatchers.IO).launch {
             val sms = applicationContext.getSystemService(SmsManager::class.java)
 
-            val publicKey = getPublicKey(applicationContext, phoneNumber)
+            val publicKey = getPublicKey(applicationContext, keyDao, phoneNumber)
 
             if (publicKey == null) {
                 Log.d("TAG", "sendMessage: No public key")
@@ -244,7 +259,11 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: Int) -> Unit, modifier: Modifier = Modifier) {
+fun SendMessage(
+    sendMessage: (phoneNumber: String, message: String, priority: Int) -> Unit,
+    keyDao: KeyDao?,
+    modifier: Modifier = Modifier
+) {
     val messageTextFieldState = rememberTextFieldState()
 
     val context = LocalContext.current
@@ -258,10 +277,12 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
     var connectDialogOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        contacts = fetchContacts(context).sortedBy { it.name }
-        loadingContacts = false
-        ReloadBus.reload.collect {
-            contacts = fetchContacts(context).sortedBy { it.name }
+        if (keyDao != null) {
+            contacts = fetchContacts(context, keyDao).sortedBy { it.name }
+            loadingContacts = false
+            ReloadBus.reload.collect {
+                contacts = fetchContacts(context, keyDao).sortedBy { it.name }
+            }
         }
     }
 
@@ -1032,7 +1053,7 @@ fun OnboardingFour(
 @Composable
 fun SendMessagePreview() {
     NightblastTheme {
-        SendMessage({ _, _, _ -> })
+        SendMessage({ _, _, _ -> }, null)
     }
 }
 

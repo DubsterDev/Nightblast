@@ -7,27 +7,19 @@ import android.provider.ContactsContract
 import android.telephony.SmsManager
 import android.telephony.TelephonyManager
 import android.util.Base64
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.first
 import java.security.KeyFactory
 import java.security.KeyStore
 import java.security.PublicKey
 import java.security.spec.X509EncodedKeySpec
 
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "publicKeys")
-
 suspend fun getPublicKey(
     context: Context,
+    keyDao: KeyDao,
     phoneNumber: String
 ): PublicKey? {
-    val key = stringPreferencesKey(phoneNumber)
-
-    val b64 = context.dataStore.data.first()[key] ?: return null
+    val b64 = keyDao.findByNumber(phoneNumber)?.publicKey ?: return null
 
     val bytes = Base64.decode(b64, Base64.NO_WRAP)
 
@@ -35,26 +27,22 @@ suspend fun getPublicKey(
     return KeyFactory.getInstance("RSA").generatePublic(keySpec)
 }
 
-suspend fun hasPublicKey(
+suspend fun setPublicKey(
     context: Context,
-    phoneNumber: String
-): Boolean {
-    val key = stringPreferencesKey(phoneNumber)
-
-    return context.dataStore.data.first()[key] != null
+    keyDao: KeyDao,
+    phoneNumber: String,
+    publicKey: String
+) {
+    keyDao.upsertKey(Key(
+        phoneNumber,
+        publicKey
+    ))
 }
 
-suspend fun setPublicKey(context: Context, phoneNumber: String, publicKey: String) {
-    val key = stringPreferencesKey(phoneNumber)
-    context.dataStore.updateData {
-        it.toMutablePreferences().also { preferences ->
-            preferences[key] = publicKey
-        }
+suspend fun fetchContacts(context: Context, keyDao: KeyDao): List<Contact> {
+    val publicKeys = keyDao.getAll().associate {
+        it.phoneNumber to it.publicKey
     }
-}
-
-suspend fun fetchContacts(context: Context): List<Contact> {
-    val preferences = context.dataStore.data.first()
 
     val region = getRegion(context)
 
@@ -80,8 +68,7 @@ suspend fun fetchContacts(context: Context): List<Contact> {
             val normalizedNumbers = normalizeNumber(region, number)
 
             if (normalizedNumbers != null) {
-                val key = stringPreferencesKey(normalizedNumbers.internationalNumber)
-                val hasKey = preferences[key] != null
+                val hasKey = publicKeys.containsKey(normalizedNumbers.internationalNumber)
 
                 contacts.add(
                     Contact(id, name, normalizedNumbers.internationalNumber, hasKey, photoUri, normalizedNumbers.nationalNumber)
@@ -93,7 +80,7 @@ suspend fun fetchContacts(context: Context): List<Contact> {
     return contacts
 }
 
-suspend fun findContact(context: Context, phoneNumber: String): Contact? {
+suspend fun findContact(context: Context, phoneNumber: String, keyDao: KeyDao?): Contact? {
     val uri = Uri.withAppendedPath(
         ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
         Uri.encode(phoneNumber)
@@ -120,8 +107,7 @@ suspend fun findContact(context: Context, phoneNumber: String): Contact? {
                 )
             ) ?: return null
 
-
-            val hasKey = hasPublicKey(context, numbers.internationalNumber)
+            val hasKey = keyDao?.findByNumber(numbers.internationalNumber) != null
 
             val contactId = cursor.getString(
                 cursor.getColumnIndexOrThrow(

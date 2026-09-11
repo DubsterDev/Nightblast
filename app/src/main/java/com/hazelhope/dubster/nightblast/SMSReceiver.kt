@@ -6,6 +6,7 @@ import android.content.Intent
 import android.provider.Telephony
 import android.util.Base64
 import android.util.Log
+import androidx.room.Room
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -17,7 +18,6 @@ import javax.crypto.spec.PSource
 
 class SMSReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d("BroadcastReceiver", "onReceive")
         if (intent.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
             Log.d("BroadcastReceiver", "SMS received")
 
@@ -36,6 +36,14 @@ class SMSReceiver : BroadcastReceiver() {
                 val entry = keyStore.getEntry(myKeyAlias, null)
                 val privateKey = (entry as KeyStore.PrivateKeyEntry).privateKey
 
+                val db = Room.databaseBuilder(
+                    context,
+                    NightblastDatabase::class.java,
+                    "nightblast-db"
+                ).build()
+
+                val keyDao = db.keyDao()
+
                 val command = body.replace("NIGHTBLAST:", "")
                 if (command.split("\n")[0] == "CONNECT" && sender != null) {
                     sendPublicKey(context, sender)
@@ -43,9 +51,9 @@ class SMSReceiver : BroadcastReceiver() {
                     val pubKey = command.replace("RECVPUBKEY:", "")
                     Log.d("TAG", "onReceive: pub key $pubKey from $sender")
                     CoroutineScope(Dispatchers.IO).launch {
-                        setPublicKey(context, sender, pubKey)
+                        setPublicKey(context, keyDao, sender, pubKey)
+                        ReloadBus.reload.tryEmit(Unit)
                     }
-                    ReloadBus.reload.tryEmit(Unit)
                 } else if (command.startsWith("MSG:") && sender != null) {
                     val encryptedPayload = command.replace("MSG:", "").split("@")
                     val encryptedMessage = encryptedPayload[0]
