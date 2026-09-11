@@ -242,6 +242,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: Int) -> Unit, modifier: Modifier = Modifier) {
     val messageTextFieldState = rememberTextFieldState()
@@ -250,6 +251,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
     
     val localResources = LocalResources.current
 
+    var loadingContacts by remember { mutableStateOf(true) }
     var contacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
     var selectedContacts by remember { mutableStateOf(listOf<String>()) }
 
@@ -257,6 +259,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
 
     LaunchedEffect(Unit) {
         contacts = fetchContacts(context).sortedBy { it.name }
+        loadingContacts = false
         ReloadBus.reload.collect {
             contacts = fetchContacts(context).sortedBy { it.name }
         }
@@ -315,7 +318,7 @@ fun SendMessage(sendMessage: (phoneNumber: String, message: String, priority: In
                     text = stringResource(R.string.choose_recipients),
                     style = MaterialTheme.typography.headlineSmall
                 )
-                if (contacts.none { it.hasPublicKey }) {
+                if (contacts.none { it.hasPublicKey } && !loadingContacts) {
                     Text(
                         text = stringResource(R.string.no_connections_yet)
                     )
