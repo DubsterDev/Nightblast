@@ -45,7 +45,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
@@ -90,6 +89,11 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
 import coil3.compose.AsyncImage
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
@@ -276,9 +280,6 @@ fun App(
     var loadingContacts by remember { mutableStateOf(true) }
     var contacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
 
-    var connectDialogOpen by remember { mutableStateOf(false) }
-    var historyDialogOpen by remember { mutableStateOf(false) }
-
     LaunchedEffect(Unit) {
         if (keyDao != null) {
             contacts = fetchContacts(context, keyDao).sortedBy { it.name }
@@ -289,62 +290,108 @@ fun App(
         }
     }
 
-    if (connectDialogOpen) {
-        InviteContactsDialog(contacts, {connectDialogOpen = false})
-    }
-
-    if (historyDialogOpen) {
-        HistoryDialog(contacts, alertHistoryDao, {historyDialogOpen = false})
-    }
+    val navController = rememberNavController()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Image(
-                            painterResource(R.drawable.nightblast_logo),
-                            contentDescription = null,
-                            modifier = Modifier.size(36.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.app_name)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton({
-                        connectDialogOpen = true
-                    }) {
-                        Icon(
-                            painterResource(R.drawable.outline_person_add),
-                            contentDescription = stringResource(R.string.button_add_contacts)
-                        )
-                    }
-                    IconButton({
-                        historyDialogOpen = true
-                    }) {
-                        Icon(
-                            painterResource(R.drawable.outline_history),
-                            contentDescription = stringResource(R.string.button_view_history)
-                        )
-                    }
-                }
-            )
+            TopBar(navController)
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        SendMessage(
-            sendMessage,
-            contacts,
-            loadingContacts,
-            openConnectDialog = { connectDialogOpen = true },
-            modifier = Modifier.padding(innerPadding)
-        )
+        val modifierWithPadding = Modifier.padding(innerPadding)
+        NavHost(navController = navController, startDestination = SendMessageScreen) {
+            composable<SendMessageScreen> {
+                SendMessage(
+                    sendMessage,
+                    contacts,
+                    loadingContacts,
+                    openConnectDialog = {
+                        navController.navigate(AddContactsScreen)
+                    },
+                    modifier = modifierWithPadding
+                )
+            }
+            composable<HistoryScreen> {
+                History(contacts, alertHistoryDao, modifierWithPadding)
+            }
+            composable<AddContactsScreen> {
+                AddContacts(
+                    contacts,
+                    modifierWithPadding
+                )
+            }
+        }
     }
+}
+
+@Composable
+fun TopBar(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    val titles = mapOf(
+        HistoryScreen::class.qualifiedName to R.string.history_title,
+        AddContactsScreen::class.qualifiedName to R.string.connect_to_contacts_title,
+    )
+
+    TopAppBar(
+        title = {
+            if (currentRoute == SendMessageScreen::class.qualifiedName) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Image(
+                        painterResource(R.drawable.nightblast_logo),
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.app_name)
+                    )
+                }
+            } else {
+                Text(
+                    text = stringResource(titles[currentRoute] ?: R.string.app_name)
+                )
+            }
+        },
+        actions = {
+            IconButton({
+                navController.navigate(AddContactsScreen)
+            }) {
+                Icon(
+                    painterResource(R.drawable.outline_person_add),
+                    contentDescription = stringResource(R.string.button_add_contacts)
+                )
+            }
+            IconButton({
+                navController.navigate(HistoryScreen)
+            }) {
+                Icon(
+                    painterResource(R.drawable.outline_history),
+                    contentDescription = stringResource(R.string.button_view_history)
+                )
+            }
+        },
+        navigationIcon = {
+            if (
+                navController.previousBackStackEntry != null
+                && currentRoute != SendMessageScreen::class.qualifiedName
+            ) {
+                IconButton(onClick = { navController.navigateUp() }) {
+                    Icon(
+                        painterResource(R.drawable.outline_arrow_back),
+                        contentDescription = "Back"
+                    )
+                }
+            }
+        },
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -594,65 +641,45 @@ fun ContactRow(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+fun AddContacts(contacts: List<Contact>, modifier: Modifier = Modifier) {
     var attemptingToConnect by remember { mutableStateOf(listOf<String>()) }
 
     val context = LocalContext.current
     val localResources = LocalResources.current
     val sms = remember { context.getSystemService(SmsManager::class.java) }
-    AlertDialog(
-        title = {
-            Text(text = stringResource(R.string.choose_contacts_to_connect_to_dialog_header))
-        },
-        text = {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = modifier
-            ) {
-                items(contacts) { contact ->
-                    ContactRow(
-                        contact,
-                        isSelected = contact.hasPublicKey,
-                        modifier = Modifier
-                            .clickable {
-                                attemptingToConnect += listOf(contact.number)
-                                sms.sendTextMessage(
-                                    contact.number,
-                                    null,
-                                    localResources.getString(
-                                        R.string.connect_sms_message,
-                                        "NIGHTBLAST:CONNECT"
-                                    ),
-                                    null,
-                                    null
-                                )
-                                sendPublicKey(context, contact.number)
-                            },
-                        isLoading = attemptingToConnect.contains(contact.number)
-                    )
-                }
-            }
-        },
-        onDismissRequest = {
-            onDismiss()
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onDismiss()
-                }
-            ) {
-                Text(stringResource(R.string.close_button_text))
-            }
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = modifier
+    ) {
+        items(contacts) { contact ->
+            ContactRow(
+                contact,
+                isSelected = contact.hasPublicKey,
+                modifier = Modifier
+                    .clickable {
+                        attemptingToConnect += listOf(contact.number)
+                        sms.sendTextMessage(
+                            contact.number,
+                            null,
+                            localResources.getString(
+                                R.string.connect_sms_message,
+                                "NIGHTBLAST:CONNECT"
+                            ),
+                            null,
+                            null
+                        )
+                        sendPublicKey(context, contact.number)
+                    },
+                isLoading = attemptingToConnect.contains(contact.number)
+            )
         }
-    )
+    }
 }
 
 @Composable
-fun HistoryDialog(
+fun History(
     contacts: List<Contact>,
     historyDao: AlertHistoryDao?,
-    onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val formatter = SimpleDateFormat("MMMM d, yyyy h:mm a", LocalLocale.current.platformLocale)
@@ -679,55 +706,35 @@ fun HistoryDialog(
     }
 
     val context = LocalContext.current
-
-    AlertDialog(
-        title = {
-            Text(text = stringResource(R.string.history_dialog_title))
-        },
-        text = {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        history.forEach {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = modifier.fillMaxWidth()
-            ) {
-                history.forEach {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                val activityIntent = Intent(context, Alert::class.java).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    putExtra("MESSAGE", it.message)
-                                    putExtra("SENDER", it.phoneNumber)
-                                    putExtra("PRIORITY", it.priority)
-                                }
-                                context.startActivity(activityIntent)
-                            }
-                    ) {
-                        Text(
-                            text = it.contactName,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = it.time
-                        )
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val activityIntent = Intent(context, Alert::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            putExtra("MESSAGE", it.message)
+                            putExtra("SENDER", it.phoneNumber)
+                            putExtra("PRIORITY", it.priority)
+                        }
+                        context.startActivity(activityIntent)
                     }
-                }
-            }
-        },
-        onDismissRequest = {
-            onDismiss()
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onDismiss()
-                }
             ) {
-                Text(stringResource(R.string.close_button_text))
+                Text(
+                    text = it.contactName,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = it.time
+                )
             }
         }
-    )
+    }
 }
 
 @Composable
