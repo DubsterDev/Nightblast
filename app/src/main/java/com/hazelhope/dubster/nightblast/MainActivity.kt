@@ -155,7 +155,7 @@ class MainActivity : ComponentActivity() {
                 ) { shouldShowOnboarding ->
 
                     if (!shouldShowOnboarding) {
-                        SendMessage(
+                        App(
                             { phoneNumber, message, priority ->
                                 sendMessage(phoneNumber, message, priority, keyDao)
                             },
@@ -265,21 +265,16 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SendMessage(
+fun App(
     sendMessage: (phoneNumber: String, message: String, priority: Int) -> Unit,
     keyDao: KeyDao?,
     alertHistoryDao: AlertHistoryDao?,
     modifier: Modifier = Modifier
 ) {
-    val messageTextFieldState = rememberTextFieldState()
-
     val context = LocalContext.current
-    
-    val localResources = LocalResources.current
 
     var loadingContacts by remember { mutableStateOf(true) }
     var contacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
-    var selectedContacts by remember { mutableStateOf(listOf<String>()) }
 
     var connectDialogOpen by remember { mutableStateOf(false) }
     var historyDialogOpen by remember { mutableStateOf(false) }
@@ -340,208 +335,259 @@ fun SendMessage(
                 }
             )
         },
-        modifier = Modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        BoxWithConstraints(
-            modifier = modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .imePadding()
-                .padding(12.dp)
+        SendMessage(
+            sendMessage,
+            contacts,
+            loadingContacts,
+            openConnectDialog = { connectDialogOpen = true },
+            modifier = Modifier.padding(innerPadding)
+        )
+    }
+}
+
+@Composable
+fun SendMessage(
+    sendMessage: (phoneNumber: String, message: String, priority: Int) -> Unit,
+    contacts: List<Contact>,
+    loadingContacts: Boolean,
+    openConnectDialog: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val messageTextFieldState = rememberTextFieldState()
+
+    val localResources = LocalResources.current
+
+    var selectedContacts by remember { mutableStateOf(listOf<String>()) }
+
+    val context = LocalContext.current
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .imePadding()
+            .padding(12.dp)
+    ) {
+        val maxMessageHeight = maxHeight * 0.35f
+        Column(
+            modifier = Modifier
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val maxMessageHeight = maxHeight * 0.35f
-            Column(
-                modifier = Modifier
-                    .fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Text(
+                text = stringResource(R.string.choose_recipients),
+                style = MaterialTheme.typography.headlineSmall
+            )
+            if (contacts.none { it.hasPublicKey } && !loadingContacts) {
                 Text(
-                    text = stringResource(R.string.choose_recipients),
-                    style = MaterialTheme.typography.headlineSmall
+                    text = stringResource(R.string.no_connections_yet)
                 )
-                if (contacts.none { it.hasPublicKey } && !loadingContacts) {
+                Button(
+                    {
+                        openConnectDialog()
+                    }
+                ) {
                     Text(
-                        text = stringResource(R.string.no_connections_yet)
+                        text = stringResource(R.string.button_add_contacts)
                     )
-                    Button(
-                        {
-                            connectDialogOpen = true
-                        }
-                    ) {
-                        Text(
-                            text = stringResource(R.string.button_add_contacts)
-                        )
-                    }
                 }
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    contacts.filter { it.hasPublicKey }.sortedBy { it.name }.forEach { contact ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .selectable(
-                                    selected = selectedContacts.contains(contact.number),
-                                    onClick = {
-                                        if (selectedContacts.contains(contact.number)) {
-                                            selectedContacts =
-                                                selectedContacts.filter { it != contact.number }
-                                        } else {
-                                            selectedContacts += listOf(contact.number)
-                                        }
-                                    },
-                                    role = Role.Checkbox
-                                )
-                                .fillMaxWidth()
-                                .padding(12.dp)
-                        ) {
-                            Box {
-                                if (contact.photo != null) {
-                                    AsyncImage(
-                                        model = contact.photo,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(CircleShape)
-                                    )
+            }
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                contacts.filter { it.hasPublicKey }.sortedBy { it.name }.forEach { contact ->
+                    ContactRow(
+                        contact,
+                        selectedContacts.contains(contact.number),
+                        modifier = Modifier.selectable(
+                            selected = selectedContacts.contains(contact.number),
+                            onClick = {
+                                if (selectedContacts.contains(contact.number)) {
+                                    selectedContacts =
+                                        selectedContacts.filter { it != contact.number }
                                 } else {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center,
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                                    ) {
-                                        Icon(
-                                            painterResource(R.drawable.outline_person),
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                        )
-                                    }
+                                    selectedContacts += listOf(contact.number)
                                 }
-
-                                val scale by animateFloatAsState(
-                                    targetValue = if (selectedContacts.contains(contact.number)) 1f else 0f,
-                                    animationSpec = tween(100)
-                                )
-
-                                Icon(
-                                    painterResource(R.drawable.outline_check),
-                                    contentDescription =  null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .graphicsLayer {
-                                            scaleX = scale
-                                            scaleY = scale
-                                            transformOrigin = TransformOrigin.Center
-                                        }
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary)
-                                )
-                            }
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                Text(
-                                    text = contact.name,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = contact.nationalNumber
-                                )
-                            }
-                        }
-                    }
-                }
-
-                var selectedPriority by remember { mutableIntStateOf(1) }
-                ButtonGroup(
-                    overflowIndicator = { menuState ->
-                        ButtonGroupDefaults.OverflowIndicator(
-                            menuState = menuState
+                            },
+                            role = Role.Checkbox
                         )
-
-                    }
-                ) {
-                    toggleableItem(
-                        checked = selectedPriority == 0,
-                        label = localResources.getString(R.string.priority_just_vibrations),
-                        onCheckedChange = {
-                            selectedPriority = 0
-                        }
                     )
+                }
+            }
 
-                    toggleableItem(
-                        checked = selectedPriority == 1,
-                        label = localResources.getString(R.string.priority_vibrations_and_sound),
-                        onCheckedChange = {
-                            selectedPriority = 1
-                        }
+            var selectedPriority by remember { mutableIntStateOf(1) }
+            ButtonGroup(
+                overflowIndicator = { menuState ->
+                    ButtonGroupDefaults.OverflowIndicator(
+                        menuState = menuState
                     )
 
                 }
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    TextField(
-                        messageTextFieldState,
-                        placeholder = {
-                            Text(
-                                stringResource(R.string.text_field_message_placeholder)
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(max = maxMessageHeight)
-                    )
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        if (messageTextFieldState.text.length > 400) {
-                            Text(
-                                text = (440 - messageTextFieldState.text.length).coerceAtLeast(0)
-                                    .toString(),
-                                color = if (messageTextFieldState.text.length > 440) MaterialTheme.colorScheme.error else Color.Unspecified
-                            )
-                        }
-                        FilledIconButton({
-                            val message = messageTextFieldState.text.trim().toString()
-
-                            if (message.length <= 440) {
-                                selectedContacts.forEach { phoneNumber ->
-                                    sendMessage(phoneNumber, message, selectedPriority)
-                                }
-                                selectedContacts = emptyList()
-                                selectedPriority = 1
-                                messageTextFieldState.clearText()
-
-                                Toast.makeText(context,
-                                    localResources.getString(R.string.toast_sending_alert), Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(context,
-                                    localResources.getString(R.string.toast_message_is_too_long), Toast.LENGTH_SHORT).show()
-                            }
-                        }) {
-                            Icon(
-                                painterResource(R.drawable.outline_send),
-                                contentDescription = stringResource(R.string.send_button_content_description)
-                            )
-                        }
+            ) {
+                toggleableItem(
+                    checked = selectedPriority == 0,
+                    label = localResources.getString(R.string.priority_just_vibrations),
+                    onCheckedChange = {
+                        selectedPriority = 0
                     }
-                }
+                )
+
+                toggleableItem(
+                    checked = selectedPriority == 1,
+                    label = localResources.getString(R.string.priority_vibrations_and_sound),
+                    onCheckedChange = {
+                        selectedPriority = 1
+                    }
+                )
 
             }
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                TextField(
+                    messageTextFieldState,
+                    placeholder = {
+                        Text(
+                            stringResource(R.string.text_field_message_placeholder)
+                        )
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(max = maxMessageHeight)
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (messageTextFieldState.text.length > 400) {
+                        Text(
+                            text = (440 - messageTextFieldState.text.length).coerceAtLeast(0)
+                                .toString(),
+                            color = if (messageTextFieldState.text.length > 440) MaterialTheme.colorScheme.error else Color.Unspecified
+                        )
+                    }
+                    FilledIconButton({
+                        val message = messageTextFieldState.text.trim().toString()
+
+                        if (message.length <= 440) {
+                            selectedContacts.forEach { phoneNumber ->
+                                sendMessage(phoneNumber, message, selectedPriority)
+                            }
+                            selectedContacts = emptyList()
+                            selectedPriority = 1
+                            messageTextFieldState.clearText()
+
+                            Toast.makeText(context,
+                                localResources.getString(R.string.toast_sending_alert), Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context,
+                                localResources.getString(R.string.toast_message_is_too_long), Toast.LENGTH_SHORT).show()
+                        }
+                    }) {
+                        Icon(
+                            painterResource(R.drawable.outline_send),
+                            contentDescription = stringResource(R.string.send_button_content_description)
+                        )
+                    }
+                }
+            }
+
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun ContactRow(
+    contact: Contact,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(12.dp)
+    ) {
+        Box {
+            if (contact.photo != null) {
+                AsyncImage(
+                    model = contact.photo,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                )
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Icon(
+                        painterResource(R.drawable.outline_person),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier
+                            .size(36.dp)
+                    )
+                }
+            }
+
+            val scale by animateFloatAsState(
+                targetValue = if (isSelected || isLoading) 1f else 0f,
+                animationSpec = tween(100)
+            )
+
+            if (isSelected) {
+                Icon(
+                    painterResource(R.drawable.outline_check),
+                    contentDescription =  null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            transformOrigin = TransformOrigin.Center
+                        }
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            } else if (isLoading) {
+                ContainedLoadingIndicator(
+                    modifier = Modifier
+                        .size(49.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            transformOrigin = TransformOrigin.Center
+                        }
+                        .clip(CircleShape)
+                )
+            }
+        }
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = contact.name,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = contact.nationalNumber
+            )
         }
     }
 }
@@ -564,11 +610,10 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                 modifier = modifier
             ) {
                 items(contacts) { contact ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    ContactRow(
+                        contact,
+                        isSelected = contact.hasPublicKey,
                         modifier = Modifier
-                            .fillMaxWidth()
                             .clickable {
                                 attemptingToConnect += listOf(contact.number)
                                 sms.sendTextMessage(
@@ -582,83 +627,9 @@ fun InviteContactsDialog(contacts: List<Contact>, onDismiss: () -> Unit, modifie
                                     null
                                 )
                                 sendPublicKey(context, contact.number)
-                            }
-                            .padding(12.dp)
-                    ) {
-                        Box {
-                            if (contact.photo != null) {
-                                AsyncImage(
-                                    model = contact.photo,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                )
-                            } else {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                                ) {
-                                    Icon(
-                                        painterResource(R.drawable.outline_person),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                    )
-                                }
-                            }
-
-                            val scale by animateFloatAsState(
-                                targetValue = if (attemptingToConnect.contains(contact.number) || contact.hasPublicKey) 1f else 0f,
-                                animationSpec = tween(100)
-                            )
-
-                            if (contact.hasPublicKey) {
-                                Icon(
-                                    painterResource(R.drawable.outline_check),
-                                    contentDescription =  null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .graphicsLayer {
-                                            scaleX = scale
-                                            scaleY = scale
-                                            transformOrigin = TransformOrigin.Center
-                                        }
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary)
-                                )
-                            } else {
-                                ContainedLoadingIndicator(
-                                    modifier = Modifier
-                                        .size(49.dp)
-                                        .graphicsLayer {
-                                            scaleX = scale
-                                            scaleY = scale
-                                            transformOrigin = TransformOrigin.Center
-                                        }
-                                        .clip(CircleShape)
-                                )
-                            }
-                        }
-
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                text = contact.name,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = contact.nationalNumber
-                            )
-                        }
-                    }
+                            },
+                        isLoading = attemptingToConnect.contains(contact.number)
+                    )
                 }
             }
         },
@@ -1153,9 +1124,9 @@ fun OnboardingFour(
 
 @Preview
 @Composable
-fun SendMessagePreview() {
+fun AppPreview() {
     NightblastTheme {
-        SendMessage({ _, _, _ -> }, null, null)
+        App({ _, _, _ -> }, null, null)
     }
 }
 
