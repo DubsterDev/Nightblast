@@ -537,7 +537,9 @@ fun SendMessage(
                             Toast.makeText(context,
                                 localResources.getString(R.string.toast_message_is_too_long), Toast.LENGTH_SHORT).show()
                         }
-                    }) {
+                    },
+                        enabled = messageTextFieldState.text.trim().toString().length <= 440 && !selectedContacts.isEmpty()
+                    ) {
                         Icon(
                             painterResource(R.drawable.outline_send),
                             contentDescription = stringResource(R.string.send_button_content_description)
