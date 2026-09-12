@@ -298,7 +298,7 @@ fun App(
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        val modifierWithPadding = Modifier.padding(innerPadding)
+        val modifierWithPadding = Modifier.padding(innerPadding).padding(12.dp)
         NavHost(navController = navController, startDestination = SendMessageScreen) {
             composable<SendMessageScreen> {
                 SendMessage(
@@ -416,7 +416,6 @@ fun SendMessage(
         modifier = modifier
             .fillMaxSize()
             .imePadding()
-            .padding(12.dp)
     ) {
         val maxMessageHeight = maxHeight * 0.35f
         Column(
