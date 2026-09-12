@@ -360,21 +360,23 @@ fun TopBar(
             }
         },
         actions = {
-            IconButton({
-                navController.navigate(AddContactsScreen)
-            }) {
-                Icon(
-                    painterResource(R.drawable.outline_person_add),
-                    contentDescription = stringResource(R.string.button_add_contacts)
-                )
-            }
-            IconButton({
-                navController.navigate(HistoryScreen)
-            }) {
-                Icon(
-                    painterResource(R.drawable.outline_history),
-                    contentDescription = stringResource(R.string.button_view_history)
-                )
+            if (currentRoute == SendMessageScreen::class.qualifiedName) {
+                IconButton({
+                    navController.navigate(AddContactsScreen)
+                }) {
+                    Icon(
+                        painterResource(R.drawable.outline_person_add),
+                        contentDescription = stringResource(R.string.button_add_contacts)
+                    )
+                }
+                IconButton({
+                    navController.navigate(HistoryScreen)
+                }) {
+                    Icon(
+                        painterResource(R.drawable.outline_history),
+                        contentDescription = stringResource(R.string.button_view_history)
+                    )
+                }
             }
         },
         navigationIcon = {
