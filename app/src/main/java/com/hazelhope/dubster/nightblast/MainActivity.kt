@@ -298,7 +298,9 @@ fun App(
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        val modifierWithPadding = Modifier.padding(innerPadding).padding(12.dp)
+        val modifierWithPadding = Modifier
+            .padding(innerPadding)
+            .padding(12.dp)
         NavHost(navController = navController, startDestination = SendMessageScreen) {
             composable<SendMessageScreen> {
                 SendMessage(
@@ -1137,6 +1139,28 @@ fun OnboardingFour(
 fun AppPreview() {
     NightblastTheme {
         App({ _, _, _ -> }, null, null)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SendMessagePreview() {
+    NightblastTheme {
+        SendMessage(
+            sendMessage = { _, _, _ -> },
+            contacts = listOf(
+                Contact(
+                    id = "DEMO",
+                    name = "Demo User",
+                    number = "+15555555555",
+                    hasPublicKey = true,
+                    photo = null,
+                    nationalNumber = "(555) 555-5555"
+                )
+            ),
+            loadingContacts = false,
+            openConnectDialog = { }
+        )
     }
 }
 
