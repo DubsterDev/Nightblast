@@ -35,4 +35,13 @@
     <string name="button_view_history">View history</string>
     <string name="history_title">History</string>
     <string name="connect_to_contacts_title">Connect to contacts</string>
+    <string name="settings_title">Settings</string>
+    <string name="about_nightblast">About Nightblast</string>
+    <string name="open_source">Open source</string>
+    <string name="nightblast_open_source">Nightblast is open source on GitHub under the GPLv3 license</string>
+    <string name="version">Version</string>
+    <string name="sounds">Sounds</string>
+    <string name="settings_sounds_summary">License information for included sounds</string>
+    <string name="sounds_andromeda">Andromeda</string>
+    <string name="sounds_andromeda_license">Music by zero-project (www.zero-project.gr), licensed under Creative Commons Attribution 4.0 International License. Modified.</string>
 </resources>

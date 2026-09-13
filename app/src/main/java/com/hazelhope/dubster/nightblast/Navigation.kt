@@ -10,3 +10,6 @@ object HistoryScreen
 
 @Serializable
 object AddContactsScreen
+
+@Serializable
+object SettingsScreen

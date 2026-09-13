@@ -322,6 +322,11 @@ fun App(
                     modifierWithPadding
                 )
             }
+            composable<SettingsScreen> {
+                Settings(
+                    modifierWithPadding
+                )
+            }
         }
     }
 }
@@ -337,6 +342,7 @@ fun TopBar(
     val titles = mapOf(
         HistoryScreen::class.qualifiedName to R.string.history_title,
         AddContactsScreen::class.qualifiedName to R.string.connect_to_contacts_title,
+        SettingsScreen::class.qualifiedName to R.string.settings_title,
     )
 
     TopAppBar(
@@ -377,6 +383,14 @@ fun TopBar(
                     Icon(
                         painterResource(R.drawable.outline_history),
                         contentDescription = stringResource(R.string.button_view_history)
+                    )
+                }
+                IconButton({
+                    navController.navigate(SettingsScreen)
+                }) {
+                    Icon(
+                        painterResource(R.drawable.outline_settings),
+                        contentDescription = stringResource(R.string.settings_title)
                     )
                 }
             }
