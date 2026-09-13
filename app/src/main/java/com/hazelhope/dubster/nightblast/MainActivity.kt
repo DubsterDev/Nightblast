@@ -713,7 +713,9 @@ fun History(
     val context = LocalContext.current
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
     ) {
         history.forEach {
             Column(
