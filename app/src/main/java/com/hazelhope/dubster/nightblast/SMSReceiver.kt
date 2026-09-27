@@ -10,6 +10,8 @@ import androidx.room.Room
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.security.KeyStore
 import java.security.spec.MGF1ParameterSpec
 import javax.crypto.Cipher
@@ -31,12 +33,7 @@ class SMSReceiver : BroadcastReceiver() {
                 body += sms.displayMessageBody
             }
 
-            if (body.startsWith("NIGHTBLAST:")) {
-                val keyStore = KeyStore.getInstance("AndroidKeyStore")
-                keyStore.load(null)
-                val entry = keyStore.getEntry(myKeyAlias, null)
-                val privateKey = (entry as KeyStore.PrivateKeyEntry).privateKey
-
+            if (body.startsWith("NIGHTBLAST:") && sender != null) {
                 val db = Room.databaseBuilder(
                     context,
                     NightblastDatabase::class.java,
@@ -44,6 +41,22 @@ class SMSReceiver : BroadcastReceiver() {
                 ).build()
 
                 val keyDao = db.keyDao()
+
+                val contact = runBlocking {
+                    withContext(Dispatchers.IO) {
+                        findContact(context, sender, keyDao)
+                    }
+                }
+
+                if (contact == null) {
+                    Log.d("TAG", "onReceive: $sender tried to send a message; ignoring as not in contacts")
+                    return
+                }
+
+                val keyStore = KeyStore.getInstance("AndroidKeyStore")
+                keyStore.load(null)
+                val entry = keyStore.getEntry(myKeyAlias, null)
+                val privateKey = (entry as KeyStore.PrivateKeyEntry).privateKey
 
                 val command = body.replace("NIGHTBLAST:", "")
                 if (command.split("\n")[0] == "CONNECT" && sender != null) {
