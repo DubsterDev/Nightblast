@@ -647,10 +647,20 @@ fun ContactRow(
         Column(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Text(
-                text = contact.name,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = contact.name,
+                    fontWeight = FontWeight.Bold
+                )
+                if (!contact.verified) {
+                    Text(
+                        text = "(not verified)",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
             Text(
                 text = contact.nationalNumber
             )
@@ -1171,7 +1181,17 @@ fun SendMessagePreview() {
                     number = "+15555555555",
                     hasPublicKey = true,
                     photo = null,
-                    nationalNumber = "(555) 555-5555"
+                    nationalNumber = "(555) 555-5555",
+                    verified = true
+                ),
+                Contact(
+                    id = "DEMO2",
+                    name = "Demo User 2",
+                    number = "+15555555556",
+                    hasPublicKey = true,
+                    photo = null,
+                    nationalNumber = "(555) 555-5556",
+                    verified = false
                 )
             ),
             loadingContacts = false,

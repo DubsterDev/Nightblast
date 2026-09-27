@@ -26,21 +26,23 @@ suspend fun getPublicKey(
     return KeyFactory.getInstance("RSA").generatePublic(keySpec)
 }
 
-fun setPublicKey(
+suspend fun setPublicKey(
     keyDao: KeyDao,
     phoneNumber: String,
     publicKey: String
 ) {
-    keyDao.upsertKey(Key(
-        phoneNumber,
-        publicKey
-    ))
+    val currentKey = keyDao.findByNumber(phoneNumber)
+    keyDao.upsertKey(
+        Key(
+            phoneNumber,
+            publicKey,
+            verified = currentKey == null
+        )
+    )
 }
 
 suspend fun fetchContacts(context: Context, keyDao: KeyDao): List<Contact> {
-    val publicKeys = keyDao.getAll().associate {
-        it.phoneNumber to it.publicKey
-    }
+    val publicKeys = keyDao.getAll().associateBy { it.phoneNumber }
 
     val region = getRegion(context)
 
@@ -69,7 +71,15 @@ suspend fun fetchContacts(context: Context, keyDao: KeyDao): List<Contact> {
                 val hasKey = publicKeys.containsKey(normalizedNumbers.internationalNumber)
 
                 contacts.add(
-                    Contact(id, name, normalizedNumbers.internationalNumber, hasKey, photoUri, normalizedNumbers.nationalNumber)
+                    Contact(
+                        id,
+                        name,
+                        normalizedNumbers.internationalNumber,
+                        hasKey,
+                        photoUri,
+                        normalizedNumbers.nationalNumber,
+                        verified = if (hasKey) publicKeys[normalizedNumbers.internationalNumber]?.verified ?: true else true
+                    )
                 )
             }
         }
@@ -105,7 +115,8 @@ suspend fun findContact(context: Context, phoneNumber: String, keyDao: KeyDao?):
                 )
             ) ?: return null
 
-            val hasKey = keyDao?.findByNumber(numbers.internationalNumber) != null
+            val key = keyDao?.findByNumber(numbers.internationalNumber)
+            val hasKey = key != null
 
             val contactId = cursor.getString(
                 cursor.getColumnIndexOrThrow(
@@ -141,7 +152,8 @@ suspend fun findContact(context: Context, phoneNumber: String, keyDao: KeyDao?):
                 number = numbers.internationalNumber,
                 hasPublicKey = hasKey,
                 photo = photoUri,
-                nationalNumber = numbers.nationalNumber
+                nationalNumber = numbers.nationalNumber,
+                verified = key?.verified ?: true
             )
         }
     }
@@ -202,6 +214,7 @@ data class Contact(
     val hasPublicKey: Boolean,
     val photo: String?,
     val nationalNumber: String,
+    val verified: Boolean
 )
 
 data class TwoPhoneNumbers(

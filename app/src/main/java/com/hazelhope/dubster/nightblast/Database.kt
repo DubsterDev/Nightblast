@@ -1,5 +1,6 @@
 package com.hazelhope.dubster.nightblast
 
+import androidx.room.AutoMigration
 import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
@@ -14,7 +15,8 @@ import androidx.room.Upsert
 @Entity(tableName = "public_keys")
 data class Key(
     @PrimaryKey @ColumnInfo(name = "phone_number") val phoneNumber: String,
-    @ColumnInfo(name = "public_key") val publicKey: String
+    @ColumnInfo(name = "public_key") val publicKey: String,
+    @ColumnInfo(defaultValue = "1") val verified: Boolean = true
 )
 
 @Entity(tableName = "alert_history")
@@ -58,7 +60,13 @@ interface AlertHistoryDao {
     suspend fun delete(alert: AlertHistory)
 }
 
-@Database(entities = [Key::class, AlertHistory::class], version = 1)
+@Database(
+    entities = [Key::class, AlertHistory::class],
+    version = 2,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2)
+    ]
+)
 abstract class NightblastDatabase : RoomDatabase() {
     abstract fun keyDao(): KeyDao
     abstract fun alertHistoryDao(): AlertHistoryDao
