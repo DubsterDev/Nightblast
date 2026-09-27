@@ -59,16 +59,16 @@ class SMSReceiver : BroadcastReceiver() {
                 val privateKey = (entry as KeyStore.PrivateKeyEntry).privateKey
 
                 val command = body.replace("NIGHTBLAST:", "")
-                if (command.split("\n")[0] == "CONNECT" && sender != null) {
+                if (command.split("\n")[0] == "CONNECT") {
                     sendPublicKey(context, sender)
-                } else if (command.startsWith("RECVPUBKEY:") && sender != null) {
+                } else if (command.startsWith("RECVPUBKEY:")) {
                     val pubKey = command.replace("RECVPUBKEY:", "")
                     Log.d("TAG", "onReceive: pub key $pubKey from $sender")
                     CoroutineScope(Dispatchers.IO).launch {
                         setPublicKey(keyDao, sender, pubKey)
                         ReloadBus.reload.tryEmit(Unit)
                     }
-                } else if (command.startsWith("MSG:") && sender != null) {
+                } else if (command.startsWith("MSG:")) {
                     val alertHistoryDao = db.alertHistoryDao()
 
                     val encryptedPayload = command.replace("MSG:", "").split("@")
