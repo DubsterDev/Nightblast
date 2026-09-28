@@ -469,8 +469,8 @@ fun SendMessage(
                         }
                     },
                     modifier = Modifier
-                        .verticalScroll(rememberScrollState())
                         .heightIn(max = maxMessageHeight)
+                        .verticalScroll(rememberScrollState())
                 )
             }
 
