@@ -42,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.room.Room
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -130,6 +131,14 @@ class Alert : ComponentActivity() {
             }
         }
 
+        val db = Room.databaseBuilder(
+            application,
+            NightblastDatabase::class.java,
+            "nightblast-db"
+        ).build()
+
+        val keyDao = db.keyDao()
+
         setContent {
             var isPlaying by remember { mutableStateOf(true) }
             NightblastTheme {
@@ -151,7 +160,8 @@ class Alert : ComponentActivity() {
                                 vibrator!!.cancel()
                             }
                             isPlaying = false
-                        }
+                        },
+                        keyDao = keyDao
                     )
                 }
             }
@@ -178,6 +188,7 @@ fun Popup(
     onClose: () -> Unit,
     isPlaying: Boolean,
     silenceAlert: () -> Unit,
+    keyDao: KeyDao?,
     modifier: Modifier = Modifier
 ) {
     var senderName by remember { mutableStateOf(sender) }
@@ -187,7 +198,7 @@ fun Popup(
 
     LaunchedEffect(sender) {
         CoroutineScope(Dispatchers.IO).launch {
-            val contact = findContact(context, sender, null)
+            val contact = findContact(context, sender, keyDao)
             senderName = contact?.name ?: sender
             isVerified = contact?.verified ?: false
         }
@@ -244,8 +255,8 @@ fun Popup(
                     Text(
                         text = stringResource(
                             R.string.caution_encryption_key_changed_popup,
-                            sender,
-                            sender
+                            senderName,
+                            senderName
                         ),
                         fontStyle = FontStyle.Italic,
                         color = MaterialTheme.colorScheme.error
@@ -277,7 +288,8 @@ fun PopupPreview() {
             "+15555555555",
             {},
             true,
-            {}
+            {},
+            null
         )
     }
 }
