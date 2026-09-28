@@ -17,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -46,9 +47,11 @@ import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
@@ -310,6 +313,19 @@ fun App(
                     openConnectDialog = {
                         navController.navigate(AddContactsScreen)
                     },
+                    markUserVerified = { contact ->
+                        val oldKey = keyDao?.findByNumber(contact.number)?.publicKey
+                        oldKey?.let { key ->
+                            keyDao.upsertKey(
+                                Key(
+                                    phoneNumber = contact.number,
+                                    publicKey = key,
+                                    verified = true
+                                )
+                            )
+                            ReloadBus.reload.tryEmit(Unit)
+                        }
+                    },
                     modifier = modifierWithPadding
                 )
             }
@@ -418,6 +434,7 @@ fun SendMessage(
     contacts: List<Contact>,
     loadingContacts: Boolean,
     openConnectDialog: () -> Unit,
+    markUserVerified: suspend (Contact) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val messageTextFieldState = rememberTextFieldState()
@@ -425,6 +442,8 @@ fun SendMessage(
     val localResources = LocalResources.current
 
     var selectedContacts by remember { mutableStateOf(listOf<String>()) }
+
+    val unverifiedUsers = contacts.filter { !it.verified }
 
     val context = LocalContext.current
 
@@ -439,6 +458,22 @@ fun SendMessage(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            AnimatedVisibility(!unverifiedUsers.isEmpty()) {
+                UnverifiedUsersWarning(
+                    unverifiedUsers,
+                    {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            unverifiedUsers.forEach {
+                                markUserVerified(it)
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .heightIn(max = maxMessageHeight)
+                )
+            }
+
             Text(
                 text = stringResource(R.string.choose_recipients),
                 style = MaterialTheme.typography.headlineSmall
@@ -564,6 +599,55 @@ fun SendMessage(
                 }
             }
 
+        }
+    }
+}
+
+@Composable
+fun UnverifiedUsersWarning(
+    unverifiedUsers: List<Contact>,
+    markVerified: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        colors = CardColors(
+            MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer,
+            MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer,
+        ),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Text(
+                text = "A change in encryption keys has been detected",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            unverifiedUsers.forEach {
+                Text(
+                    text = "Your contact ${it.name} may have reinstalled Nightblast, is using a different phone, or someone else may be impersonating them. Please reach out to ${it.name} using a different communication method to verify their identity."
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    { markVerified() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                ) {
+                    Text(
+                        text = "Mark as verified"
+                    )
+                }
+            }
         }
     }
 }
@@ -1195,7 +1279,8 @@ fun SendMessagePreview() {
                 )
             ),
             loadingContacts = false,
-            openConnectDialog = { }
+            openConnectDialog = { },
+            markUserVerified = {}
         )
     }
 }
