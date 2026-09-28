@@ -1001,6 +1001,7 @@ fun OnboardingTwo(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     var hasContactsPermissions by remember {
         mutableStateOf(
@@ -1174,7 +1175,7 @@ fun OnboardingTwo(
                         )
 
                         Toast.makeText(context,
-                            context.getString(R.string.toast_find_nightblast), Toast.LENGTH_LONG).show()
+                            resources.getString(R.string.toast_find_nightblast), Toast.LENGTH_LONG).show()
 
                         context.startActivity(intent)
 
