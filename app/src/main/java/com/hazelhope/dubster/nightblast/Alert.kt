@@ -181,6 +181,7 @@ fun Popup(
     modifier: Modifier = Modifier
 ) {
     var senderName by remember { mutableStateOf(sender) }
+    var isVerified by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
 
@@ -188,6 +189,7 @@ fun Popup(
         CoroutineScope(Dispatchers.IO).launch {
             val contact = findContact(context, sender, null)
             senderName = contact?.name ?: sender
+            isVerified = contact?.verified ?: false
         }
     }
 
@@ -238,6 +240,13 @@ fun Popup(
                     text = stringResource(R.string.alert_box_sent_by, senderName),
                     fontStyle = FontStyle.Italic
                 )
+                if (!isVerified) {
+                    Text(
+                        text = "Caution! A change in the encryption key used by $sender has been detected! Please verify their identity and confirm this alert was sent by $sender.",
+                        fontStyle = FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
                 AnimatedVisibility(isPlaying) {
                     Button(
                         {
