@@ -44,4 +44,9 @@
     <string name="settings_sounds_summary">License information for included sounds</string>
     <string name="sounds_andromeda">Andromeda</string>
     <string name="sounds_andromeda_license">Music by zero-project (www.zero-project.gr), licensed under Creative Commons Attribution 4.0 International License. Modified.</string>
+    <string name="caution_encryption_key_changed_popup">Caution! A change in the encryption key used by %1$s has been detected! Please verify their identity and confirm this alert was sent by %2$s.</string>
+    <string name="unverified_user_warning_message">Your contact %1$s may have reinstalled Nightblast, is using a different phone, or someone else may be impersonating them. Please reach out to %2$s using a different communication method to verify their identity.</string>
+    <string name="change_in_encryption_keys_alert_title">A change in encryption keys has been detected</string>
+    <string name="button_mark_as_verified">Mark as verified</string>
+    <string name="toast_find_nightblast">Find Nightblast, tap it, and turn on Allow display over other apps</string>
 </resources>

@@ -242,7 +242,11 @@ fun Popup(
                 )
                 if (!isVerified) {
                     Text(
-                        text = "Caution! A change in the encryption key used by $sender has been detected! Please verify their identity and confirm this alert was sent by $sender.",
+                        text = stringResource(
+                            R.string.caution_encryption_key_changed_popup,
+                            sender,
+                            sender
+                        ),
                         fontStyle = FontStyle.Italic,
                         color = MaterialTheme.colorScheme.error
                     )

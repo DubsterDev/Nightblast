@@ -623,13 +623,17 @@ fun UnverifiedUsersWarning(
             modifier = Modifier.padding(12.dp)
         ) {
             Text(
-                text = "A change in encryption keys has been detected",
+                text = stringResource(R.string.change_in_encryption_keys_alert_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
             unverifiedUsers.forEach {
                 Text(
-                    text = "Your contact ${it.name} may have reinstalled Nightblast, is using a different phone, or someone else may be impersonating them. Please reach out to ${it.name} using a different communication method to verify their identity."
+                    text = stringResource(
+                        R.string.unverified_user_warning_message,
+                        it.name,
+                        it.name
+                    )
                 )
             }
             Row(
@@ -644,7 +648,7 @@ fun UnverifiedUsersWarning(
                     )
                 ) {
                     Text(
-                        text = "Mark as verified"
+                        text = stringResource(R.string.button_mark_as_verified)
                     )
                 }
             }
@@ -1169,7 +1173,8 @@ fun OnboardingTwo(
                             "package:${context.packageName}".toUri()
                         )
 
-                        Toast.makeText(context, "Find Nightblast, tap it, and turn on Allow display over other apps", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context,
+                            context.getString(R.string.toast_find_nightblast), Toast.LENGTH_LONG).show()
 
                         context.startActivity(intent)
 
