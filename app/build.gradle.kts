@@ -18,8 +18,8 @@ android {
         applicationId = "com.hazelhope.dubster.nightblast"
         minSdk = 24
         targetSdk = 37
-        versionCode = 103
-        versionName = "1.0.3"
+        versionCode = 104
+        versionName = "1.0.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

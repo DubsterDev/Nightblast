@@ -1,0 +1,1 @@
+In this release, we made it so Nightblast doesn't exchange keys or accept blasts from people who aren't in your contacts and added an alert informing you of changes in your contact's public key.
