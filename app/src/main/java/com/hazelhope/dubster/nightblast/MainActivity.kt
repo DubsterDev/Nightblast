@@ -132,14 +132,13 @@ class MainActivity : ComponentActivity() {
         val alertHistoryDao = db.alertHistoryDao()
 
         val hasSendSms = ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
-        val hasReadSms = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
         val hasReceiveSms = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
         val hasReadContacts = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
         val hasSystemAlertWindow = Settings.canDrawOverlays(this)
 
         val needsToGenerateKey = needsToGenerateKey()
 
-        val hasAllPermissions = hasSendSms && hasReadSms && hasReceiveSms && hasReadContacts && hasSystemAlertWindow && !needsToGenerateKey
+        val hasAllPermissions = hasSendSms && hasReceiveSms && hasReadContacts && hasSystemAlertWindow && !needsToGenerateKey
 
         enableEdgeToEdge()
         setContent {
@@ -1017,10 +1016,6 @@ fun OnboardingTwo(
         mutableStateOf(
             ContextCompat.checkSelfPermission(
                 context,
-                Manifest.permission.READ_SMS
-            ) == PackageManager.PERMISSION_GRANTED
-                    && ContextCompat.checkSelfPermission(
-                context,
                 Manifest.permission.RECEIVE_SMS
             ) == PackageManager.PERMISSION_GRANTED
                     && ContextCompat.checkSelfPermission(
@@ -1046,7 +1041,7 @@ fun OnboardingTwo(
     ) { permissions ->
         val granted = permissions.filter { it.value }
 
-        if (granted.containsKey(Manifest.permission.READ_SMS) && granted.containsKey(Manifest.permission.RECEIVE_SMS) && granted.containsKey(Manifest.permission.SEND_SMS)) {
+        if (granted.containsKey(Manifest.permission.RECEIVE_SMS) && granted.containsKey(Manifest.permission.SEND_SMS)) {
             hasSmsPermissions = true
         } else if (granted.containsKey(Manifest.permission.READ_CONTACTS)) {
             hasContactsPermissions = true
@@ -1137,7 +1132,7 @@ fun OnboardingTwo(
                 )
                 Button(
                     {
-                        permissionLauncher.launch(arrayOf(Manifest.permission.SEND_SMS, Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS))
+                        permissionLauncher.launch(arrayOf(Manifest.permission.SEND_SMS, Manifest.permission.RECEIVE_SMS))
                     },
                     enabled = !hasSmsPermissions,
                     modifier = Modifier.align(Alignment.End)

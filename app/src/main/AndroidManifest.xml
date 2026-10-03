@@ -9,8 +9,6 @@
 
     <uses-permission android:name="android.permission.SEND_SMS"
         tools:ignore="SmsAndCallLogPolicy" />
-    <uses-permission android:name="android.permission.READ_SMS"
-        tools:ignore="SmsAndCallLogPolicy" />
     <uses-permission android:name="android.permission.RECEIVE_SMS"
         tools:ignore="SmsAndCallLogPolicy" />
 
@@ -45,7 +43,8 @@
         <receiver
             android:name=".SMSReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
             <intent-filter android:priority="1000">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
