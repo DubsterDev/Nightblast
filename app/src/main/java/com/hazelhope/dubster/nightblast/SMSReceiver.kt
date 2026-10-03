@@ -58,11 +58,11 @@ class SMSReceiver : BroadcastReceiver() {
                 val entry = keyStore.getEntry(myKeyAlias, null)
                 val privateKey = (entry as KeyStore.PrivateKeyEntry).privateKey
 
-                val command = body.replace("NIGHTBLAST:", "")
+                val command = body.removePrefix("NIGHTBLAST:")
                 if (command.split("\n")[0] == "CONNECT") {
                     sendPublicKey(context, sender)
                 } else if (command.startsWith("RECVPUBKEY:")) {
-                    val pubKey = command.replace("RECVPUBKEY:", "")
+                    val pubKey = command.removePrefix("RECVPUBKEY:")
                     Log.d("TAG", "onReceive: pub key $pubKey from $sender")
                     CoroutineScope(Dispatchers.IO).launch {
                         setPublicKey(keyDao, sender, pubKey)
@@ -71,7 +71,7 @@ class SMSReceiver : BroadcastReceiver() {
                 } else if (command.startsWith("MSG:")) {
                     val alertHistoryDao = db.alertHistoryDao()
 
-                    val encryptedPayload = command.replace("MSG:", "").split("@")
+                    val encryptedPayload = command.removePrefix("MSG:").split("@")
                     val encryptedMessage = encryptedPayload[0]
                     val priority = if (encryptedPayload.size < 2) 0
                         else encryptedPayload[1].toIntOrNull() ?: 0
