@@ -66,42 +66,46 @@ class SMSReceiver : BroadcastReceiver() {
                         ReloadBus.reload.tryEmit(Unit)
                     }
                 } else if (command.startsWith("MSG:")) {
-                    val alertHistoryDao = db.alertHistoryDao()
+                    try {
+                        val alertHistoryDao = db.alertHistoryDao()
 
-                    val encryptedPayload = command.removePrefix("MSG:").split("@")
-                    val encryptedMessage = encryptedPayload[0]
-                    val priority = if (encryptedPayload.size < 2) 0
+                        val encryptedPayload = command.removePrefix("MSG:").split("@")
+                        val encryptedMessage = encryptedPayload[0]
+                        val priority = if (encryptedPayload.size < 2) 0
                         else encryptedPayload[1].toIntOrNull() ?: 0
 
-                    val cipher = Cipher.getInstance("RSA/ECB/OAEPPadding")
-                    val oaepSpec = OAEPParameterSpec(
-                        "SHA-256",
-                        "MGF1",
-                        MGF1ParameterSpec.SHA1,
-                        PSource.PSpecified.DEFAULT
-                    )
-                    cipher.init(Cipher.DECRYPT_MODE, privateKey, oaepSpec)
-                    val encryptedBytes = Base64.decode(encryptedMessage, Base64.DEFAULT)
+                        val cipher = Cipher.getInstance("RSA/ECB/OAEPPadding")
+                        val oaepSpec = OAEPParameterSpec(
+                            "SHA-256",
+                            "MGF1",
+                            MGF1ParameterSpec.SHA1,
+                            PSource.PSpecified.DEFAULT
+                        )
+                        cipher.init(Cipher.DECRYPT_MODE, privateKey, oaepSpec)
+                        val encryptedBytes = Base64.decode(encryptedMessage, Base64.DEFAULT)
 
-                    val decryptedBytes = cipher.doFinal(encryptedBytes)
-                    val decryptedMessage = decryptedBytes.decodeToString()
+                        val decryptedBytes = cipher.doFinal(encryptedBytes)
+                        val decryptedMessage = decryptedBytes.decodeToString()
 
-                    CoroutineScope(Dispatchers.IO).launch {
-                        alertHistoryDao.insert(AlertHistory(
-                            phoneNumber = sender,
-                            priority = priority,
-                            message = decryptedMessage,
-                            time = Clock.System.now().epochSeconds
-                        ))
+                        CoroutineScope(Dispatchers.IO).launch {
+                            alertHistoryDao.insert(AlertHistory(
+                                phoneNumber = sender,
+                                priority = priority,
+                                message = decryptedMessage,
+                                time = Clock.System.now().epochSeconds
+                            ))
+                        }
+
+                        val activityIntent = Intent(context, Alert::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            putExtra("MESSAGE", decryptedMessage)
+                            putExtra("SENDER", sender)
+                            putExtra("PRIORITY", priority)
+                        }
+                        context.startActivity(activityIntent)
+                    } catch (e: Exception) {
+                        Log.e("TAG", "onReceive: Parsing a new message failed.", e)
                     }
-
-                    val activityIntent = Intent(context, Alert::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        putExtra("MESSAGE", decryptedMessage)
-                        putExtra("SENDER", sender)
-                        putExtra("PRIORITY", priority)
-                    }
-                    context.startActivity(activityIntent)
                 }
             }
         }
