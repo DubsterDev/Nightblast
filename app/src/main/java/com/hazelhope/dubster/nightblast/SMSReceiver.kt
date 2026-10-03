@@ -73,7 +73,8 @@ class SMSReceiver : BroadcastReceiver() {
 
                     val encryptedPayload = command.replace("MSG:", "").split("@")
                     val encryptedMessage = encryptedPayload[0]
-                    val priority = encryptedPayload[1].toIntOrNull() ?: 0
+                    val priority = if (encryptedPayload.size < 2) 0
+                        else encryptedPayload[1].toIntOrNull() ?: 0
 
                     val cipher = Cipher.getInstance("RSA/ECB/OAEPPadding")
                     val oaepSpec = OAEPParameterSpec(
