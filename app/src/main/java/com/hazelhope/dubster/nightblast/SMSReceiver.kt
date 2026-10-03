@@ -22,8 +22,6 @@ import kotlin.time.Clock
 class SMSReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
-            Log.d("BroadcastReceiver", "SMS received")
-
             val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
 
             var sender: String? = null
@@ -63,7 +61,6 @@ class SMSReceiver : BroadcastReceiver() {
                     sendPublicKey(context, sender)
                 } else if (command.startsWith("RECVPUBKEY:")) {
                     val pubKey = command.removePrefix("RECVPUBKEY:")
-                    Log.d("TAG", "onReceive: pub key $pubKey from $sender")
                     CoroutineScope(Dispatchers.IO).launch {
                         setPublicKey(keyDao, sender, pubKey)
                         ReloadBus.reload.tryEmit(Unit)
