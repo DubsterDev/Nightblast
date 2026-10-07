@@ -58,11 +58,11 @@ class SMSReceiver : BroadcastReceiver() {
 
                 val command = body.removePrefix("NIGHTBLAST:")
                 if (command.split("\n")[0] == "CONNECT") {
-                    sendPublicKey(context, sender)
+                    sendPublicKey(context, contact.number)
                 } else if (command.startsWith("RECVPUBKEY:")) {
                     val pubKey = command.removePrefix("RECVPUBKEY:")
                     CoroutineScope(Dispatchers.IO).launch {
-                        setPublicKey(keyDao, sender, pubKey)
+                        setPublicKey(keyDao, contact.number, pubKey)
                         ReloadBus.reload.tryEmit(Unit)
                     }
                 } else if (command.startsWith("MSG:")) {
@@ -89,7 +89,7 @@ class SMSReceiver : BroadcastReceiver() {
 
                         CoroutineScope(Dispatchers.IO).launch {
                             alertHistoryDao.insert(AlertHistory(
-                                phoneNumber = sender,
+                                phoneNumber = contact.number,
                                 priority = priority,
                                 message = decryptedMessage,
                                 time = Clock.System.now().epochSeconds
@@ -99,7 +99,7 @@ class SMSReceiver : BroadcastReceiver() {
                         val activityIntent = Intent(context, Alert::class.java).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             putExtra("MESSAGE", decryptedMessage)
-                            putExtra("SENDER", sender)
+                            putExtra("SENDER", contact.number)
                             putExtra("PRIORITY", priority)
                         }
                         context.startActivity(activityIntent)
