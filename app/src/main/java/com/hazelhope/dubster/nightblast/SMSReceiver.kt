@@ -47,7 +47,7 @@ class SMSReceiver : BroadcastReceiver() {
                 }
 
                 if (contact == null) {
-                    Log.d("TAG", "onReceive: $sender tried to send a message; ignoring as not in contacts")
+                    Log.d("TAG", "onReceive: someone tried to send a message; ignoring as not in contacts")
                     return
                 }
 
