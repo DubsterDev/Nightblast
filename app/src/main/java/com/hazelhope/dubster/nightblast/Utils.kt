@@ -36,7 +36,7 @@ suspend fun setPublicKey(
         Key(
             phoneNumber,
             publicKey,
-            verified = currentKey == null || currentKey.publicKey == publicKey
+            verified = currentKey == null || (currentKey.publicKey == publicKey && currentKey.verified)
         )
     )
 }
