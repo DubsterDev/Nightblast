@@ -1,0 +1,1 @@
+Fixed an issue that allowed an attacker to send the same key twice and mark it as verified, even though it changed
