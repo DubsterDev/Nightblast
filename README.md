@@ -1,6 +1,26 @@
 # Nightblast
 
+<p>
+ <a href="https://github.com/DubsterDev/Nightblast/releases">
+  <img src="https://img.shields.io/github/v/release/DubsterDev/Nightblast?style=for-the-badge&logo=github">
+ </a>
+ <a href="https://f-droid.org/en/packages/com.hazelhope.dubster.nightblast/">
+  <img src="https://img.shields.io/f-droid/v/com.hazelhope.dubster.nightblast?style=for-the-badge&logo=f-droid">
+ </a>
+</p>
+
 Send urgent alerts to your contacts using encrypted SMS messages with Nightblast.
+
+## Download
+
+<p>
+ <a href="https://f-droid.org/en/packages/com.hazelhope.dubster.nightblast/">
+  <img src="https://f-droid.org/badge/get-it-on.png" style="height: 80px;">
+ </a>
+ <a href="https://github.com/DubsterDev/Nightblast/releases">
+  <img src="https://raw.githubusercontent.com/Kunzisoft/Github-badge/refs/heads/main/get-it-on-github.png" style="height: 80px;">
+ </a>
+</p>
 
 ## Screenshots
 
