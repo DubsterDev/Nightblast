@@ -269,7 +269,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun App(
     sendMessage: (phoneNumber: String, message: String, priority: Int) -> Unit,
