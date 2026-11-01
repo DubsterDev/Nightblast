@@ -80,7 +80,7 @@ fun SendMessage(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            AnimatedVisibility(!unverifiedUsers.isEmpty()) {
+            AnimatedVisibility(unverifiedUsers.isNotEmpty()) {
                 UnverifiedUsersWarning(
                     unverifiedUsers,
                     {
