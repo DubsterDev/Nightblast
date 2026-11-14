@@ -1,6 +1,12 @@
 package com.hazelhope.dubster.nightblast
 
 import android.Manifest
+import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
@@ -56,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -79,6 +86,37 @@ import javax.crypto.spec.PSource
 const val myKeyAlias = "nightblast"
 class MainActivity : ComponentActivity() {
 
+    var smsId = 0
+    private val smsSentReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val phoneNumber = intent.getStringExtra("phone_number") ?: "unknown"
+            val amountMessages = intent.getIntExtra("amount_messages", 1)
+
+            val currentStatus = SmsEventBus.events.value.toMutableMap()
+
+            var currentEntry = if (currentStatus.containsKey(phoneNumber)) currentStatus[phoneNumber]!!
+                else SmsStatus(
+                    sending = true,
+                    success = false,
+                    receivedNum = 0
+                )
+
+            currentEntry = currentEntry.copy(receivedNum = currentEntry.receivedNum + 1)
+
+            Log.d("TAG", "onReceive: $phoneNumber ${currentEntry.receivedNum}/$amountMessages")
+
+            if (resultCode != RESULT_OK) {
+                currentEntry = currentEntry.copy(sending = false, success = false)
+            } else if (resultCode == RESULT_OK && currentEntry.receivedNum == amountMessages && currentEntry.sending) {
+                currentEntry = currentEntry.copy(sending = false, success = true)
+            }
+
+            currentStatus[phoneNumber] = currentEntry
+
+            SmsEventBus.updateStatus(currentStatus)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -101,6 +139,7 @@ class MainActivity : ComponentActivity() {
 
         val hasAllPermissions = hasSendSms && hasReceiveSms && hasReadContacts && hasSystemAlertWindow && !needsToGenerateKey
 
+        registerSMSBroadcastReceiver()
         enableEdgeToEdge()
         setContent {
             NightblastTheme {
@@ -173,8 +212,38 @@ class MainActivity : ComponentActivity() {
             val encryptedBase64 = Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
 
             val parts = sms.divideMessage("NIGHTBLAST:MSG:$encryptedBase64@$priority")
-            sms.sendMultipartTextMessage(phoneNumber, null, parts, null, null)
+
+            val sentPIs = List(parts.size) { index ->
+                val sentIntent = Intent("SMS_SENT").apply {
+                    data = "nightblast://sms-sent/$phoneNumber/$index".toUri()
+                    setPackage(packageName)
+                    putExtra("phone_number", phoneNumber)
+                    putExtra("amount_messages", parts.size)
+                    putExtra("part_index", index)
+                }
+
+                PendingIntent.getBroadcast(
+                    applicationContext,
+                    smsId++,
+                    sentIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE
+                )
+            }
+
+            sms.sendMultipartTextMessage(phoneNumber, null, parts, ArrayList(sentPIs), null)
         }
+    }
+
+    fun registerSMSBroadcastReceiver() {
+        ContextCompat.registerReceiver(
+            this,
+            smsSentReceiver,
+            IntentFilter("SMS_SENT").apply {
+                addDataScheme("nightblast")
+                addDataAuthority("sms-sent", null)
+            },
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     fun needsToGenerateKey(): Boolean {
@@ -227,6 +296,11 @@ class MainActivity : ComponentActivity() {
 
             kpg.generateKeyPair()
         }
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(smsSentReceiver)
+        super.onDestroy()
     }
 }
 

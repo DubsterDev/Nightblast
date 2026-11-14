@@ -16,6 +16,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroup
@@ -29,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +47,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hazelhope.dubster.nightblast.ui.theme.NightblastTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +62,7 @@ fun SendMessage(
     markUserVerified: suspend (Contact) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var sending by remember { mutableStateOf(false) }
     val messageTextFieldState = rememberTextFieldState()
 
     val localResources = LocalResources.current
@@ -69,6 +73,7 @@ fun SendMessage(
 
     val context = LocalContext.current
 
+    var selectedPriority by remember { mutableIntStateOf(1) }
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
@@ -141,7 +146,6 @@ fun SendMessage(
                 }
             }
 
-            var selectedPriority by remember { mutableIntStateOf(1) }
             ButtonGroup(
                 overflowIndicator = { menuState ->
                     ButtonGroupDefaults.OverflowIndicator(
@@ -200,9 +204,8 @@ fun SendMessage(
                             selectedContacts.forEach { phoneNumber ->
                                 sendMessage(phoneNumber, message, selectedPriority)
                             }
-                            selectedContacts = emptyList()
-                            selectedPriority = 1
-                            messageTextFieldState.clearText()
+
+                            sending = true
 
                             Toast.makeText(context,
                                 localResources.getString(R.string.toast_sending_alert), Toast.LENGTH_SHORT).show()
@@ -222,6 +225,21 @@ fun SendMessage(
             }
 
         }
+    }
+
+    if (sending) {
+        SendingDialog(contacts.filter { selectedContacts.contains(it.number) }, { phoneNumber ->
+            val message = messageTextFieldState.text.trim().toString()
+
+            sendMessage(phoneNumber, message, selectedPriority)
+        }, {
+            sending = false
+            SmsEventBus.updateStatus(emptyMap())
+
+            selectedContacts = emptyList()
+            selectedPriority = 1
+            messageTextFieldState.clearText()
+        })
     }
 }
 
@@ -276,6 +294,79 @@ fun UnverifiedUsersWarning(
             }
         }
     }
+}
+
+@Composable
+fun SendingDialog(
+    contacts: List<Contact>,
+    retry: (String) -> Unit,
+    dismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val sendingState by SmsEventBus.events.collectAsStateWithLifecycle()
+    var sentToEveryone by remember { mutableStateOf(false) }
+
+    LaunchedEffect(sendingState) {
+        var sent = true
+        contacts.forEach { contact ->
+            val sentThisOne = sendingState.containsKey(contact.number) && !sendingState[contact.number]!!.sending
+            if (!sentThisOne) sent = false
+        }
+        sentToEveryone = sent
+    }
+    AlertDialog(
+        title = {
+            Text(stringResource(R.string.sending_alert_dialog_title))
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = modifier
+            ) {
+                contacts.forEach { contact ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ContactRow(
+                            contact,
+                            isSelected = sendingState.containsKey(contact.number) && sendingState[contact.number]!!.success,
+                            isLoading = !sendingState.containsKey(contact.number) || sendingState[contact.number]!!.sending,
+                            modifier = Modifier.weight(2f)
+                        )
+                        if (sendingState.containsKey(contact.number) && !sendingState[contact.number]!!.success && !sendingState[contact.number]!!.sending) {
+                            Button({
+                                val smsState = SmsEventBus.events.value.toMutableMap()
+                                smsState.remove(contact.number)
+                                SmsEventBus.updateStatus(smsState)
+                                retry(contact.number)
+                            }, modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.button_retry)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            Button(
+                onClick = {
+                    dismiss()
+                },
+                enabled = sentToEveryone
+            ) {
+                Text("Close")
+            }
+        },
+        onDismissRequest = {
+            if (sentToEveryone) {
+                dismiss()
+            }
+        }
+    )
 }
 
 @Preview(showBackground = true)

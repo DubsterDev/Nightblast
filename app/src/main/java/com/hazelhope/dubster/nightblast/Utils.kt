@@ -9,6 +9,8 @@ import android.telephony.TelephonyManager
 import android.util.Base64
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.security.KeyFactory
 import java.security.KeyStore
 import java.security.PublicKey
@@ -230,8 +232,25 @@ data class AlertHistoryWithMoreData(
     val message: String,
     val time: String
 )
+
+data class SmsStatus(
+    val sending: Boolean,
+    val success: Boolean,
+    val receivedNum: Int
+)
+
 object ReloadBus {
     val reload = MutableSharedFlow<Unit>(
         extraBufferCapacity = 1
     )
+}
+
+object SmsEventBus {
+    private val _events = MutableStateFlow<Map<String, SmsStatus>>(emptyMap())
+
+    val events = _events.asStateFlow()
+
+    fun updateStatus(smsStatus: Map<String, SmsStatus>) {
+        _events.tryEmit(smsStatus)
+    }
 }

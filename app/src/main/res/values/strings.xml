@@ -49,4 +49,6 @@
     <string name="change_in_encryption_keys_alert_title">A change in encryption keys has been detected</string>
     <string name="button_mark_as_verified">Mark as verified</string>
     <string name="toast_find_nightblast">Find Nightblast, tap it, and turn on Allow display over other apps</string>
+    <string name="button_retry">Retry</string>
+    <string name="sending_alert_dialog_title">Sending alert</string>
 </resources>
