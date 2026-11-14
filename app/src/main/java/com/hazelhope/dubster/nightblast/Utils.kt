@@ -80,7 +80,7 @@ suspend fun fetchContacts(context: Context, keyDao: KeyDao): List<Contact> {
                         hasKey,
                         photoUri,
                         normalizedNumbers.nationalNumber,
-                        verified = if (hasKey) publicKeys[normalizedNumbers.internationalNumber]?.verified ?: true else true
+                        verified = !hasKey || publicKeys[normalizedNumbers.internationalNumber]?.verified ?: true
                     )
                 )
             }

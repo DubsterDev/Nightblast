@@ -214,7 +214,7 @@ fun SendMessage(
                                 localResources.getString(R.string.toast_message_is_too_long), Toast.LENGTH_SHORT).show()
                         }
                     },
-                        enabled = messageTextFieldState.text.trim().toString().length <= 440 && !selectedContacts.isEmpty()
+                        enabled = messageTextFieldState.text.trim().toString().length <= 440 && selectedContacts.isNotEmpty()
                     ) {
                         Icon(
                             painterResource(R.drawable.outline_send),
