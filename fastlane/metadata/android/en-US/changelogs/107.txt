@@ -1,0 +1,1 @@
+Added a sending dialog to show if Nightblast fails to send an alert and offer a retry button.
