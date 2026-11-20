@@ -17,6 +17,13 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <permission
+        android:name="com.hazelhope.dubster.nightblast.SHOW_ALERT"
+        android:label="@string/show_alert_label"
+        android:description="@string/show_alert_description"
+        android:protectionLevel="dangerous"
+        android:icon="@drawable/nightblast_foreground"/>
 
     <application
         android:allowBackup="true"
@@ -56,6 +63,18 @@
             android:label="@string/title_activity_alert"
             android:theme="@style/Theme.Nightblast.TransparentDialog"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ExternalAlert"
+            android:exported="true"
+            android:label="@string/title_activity_alert"
+            android:theme="@style/Theme.Nightblast.TransparentDialog"
+            android:windowSoftInputMode="adjustResize"
+            android:permission="com.hazelhope.dubster.nightblast.SHOW_ALERT">
+            <intent-filter>
+                <action android:name="com.hazelhope.dubster.nightblast.SHOW_ALERT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

@@ -51,4 +51,7 @@
     <string name="toast_find_nightblast">Find Nightblast, tap it, and turn on Allow display over other apps</string>
     <string name="button_retry">Retry</string>
     <string name="sending_alert_dialog_title">Sending alert</string>
+    <string name="show_alert_label">Display urgent alerts</string>
+    <string name="show_alert_description">display urgent alerts</string>
+    <string name="sender_another_app_on_this_device">another app on this device</string>
 </resources>
